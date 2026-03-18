@@ -10,12 +10,7 @@
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
-/* Base styles */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+/* Base styles removed because Tailwind preflight already handles resets, and unlayered styles override Tailwind v4 utility layers */
 
 body {
   font-family:

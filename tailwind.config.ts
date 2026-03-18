@@ -20,7 +20,12 @@ const config: Config = {
         // Base/Neutrals
         white: '#FFFFFF',
         border: '#DADCE0',
-        text: '#202124',
+        text: {
+          DEFAULT: 'var(--text-primary)',
+          primary: 'var(--text-primary)',
+          secondary: 'var(--text-secondary)',
+          placeholder: 'var(--text-placeholder)',
+        },
         placeholder: '#80868B',
 
         // Feedback Colors

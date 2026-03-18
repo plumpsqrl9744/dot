@@ -32,7 +32,7 @@ function App(): React.JSX.Element {
         collapsed={sidebarCollapsed}
         onToggle={toggleSidebar}
       />
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden ">
         <Header title={pageTitles[currentPage] || 'Dashboard'} onToggleSidebar={toggleSidebar} />
         <main className="flex-1 overflow-hidden">
           {currentPage === 'dashboard' && <Dashboard />}
