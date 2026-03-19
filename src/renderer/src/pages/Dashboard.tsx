@@ -1,112 +1,115 @@
-import { JSX, useState } from 'react'
-import { FiPlus } from 'react-icons/fi'
-import { TaskItem } from '../components/dashboard/TaskItem'
+import { JSX } from 'react'
+import { FiCheckCircle, FiClock, FiAlertCircle, FiTrendingUp } from 'react-icons/fi'
+import {
+  StatCard,
+  WeeklyActivityChart,
+  TaskStatusChart,
+  ProjectsChart,
+  RecentActivity
+} from '@renderer/features/dashboard'
+import { Breadcrumb } from '@renderer/shared/components'
+
+// Mock data
+const weeklyData = [
+  { name: 'Mon', completed: 4, created: 6 },
+  { name: 'Tue', completed: 7, created: 5 },
+  { name: 'Wed', completed: 5, created: 8 },
+  { name: 'Thu', completed: 8, created: 4 },
+  { name: 'Fri', completed: 6, created: 7 },
+  { name: 'Sat', completed: 3, created: 2 },
+  { name: 'Sun', completed: 2, created: 1 }
+]
+
+const projectData = [
+  { name: 'AMS', tasks: 12, color: '#2563EB' },
+  { name: 'WAS', tasks: 8, color: '#5494F3' },
+  { name: 'Frontend', tasks: 15, color: '#22C55E' },
+  { name: 'BIZ', tasks: 6, color: '#F57C00' },
+  { name: 'Personal', tasks: 4, color: '#9CA3AF' }
+]
+
+const statusDistribution = [
+  { name: 'Completed', value: 24, color: '#22C55E' },
+  { name: 'In Progress', value: 12, color: '#2563EB' },
+  { name: 'Urgent', value: 5, color: '#D32F2F' },
+  { name: 'Due Soon', value: 8, color: '#F57C00' }
+]
+
+const recentActivity = [
+  { id: 1, action: 'completed' as const, task: '마케팅 미팅 회의록', time: '2시간 전' },
+  { id: 2, action: 'created' as const, task: '서버 부하 테스트', time: '3시간 전' },
+  { id: 3, action: 'assigned' as const, task: 'UI 디자인 검토', by: '김철수', time: '5시간 전' },
+  { id: 4, action: 'completed' as const, task: '주간 보고서 작성', time: '어제' },
+  { id: 5, action: 'created' as const, task: 'API 문서화', time: '어제' }
+]
 
 export function Dashboard(): JSX.Element {
-  const [tasks, setTasks] = useState([
-    {
-      id: '1',
-      title: '마케팅 미팅 회의록 정리',
-      completed: false,
-      priority: 'high' as const,
-      time: '6:00'
-    },
-    { id: '2', title: '클라이언트 메일 발송 (완료됨)', completed: true, time: '2:00' },
-    { id: '3', title: '서버 아키텍처 다이어그램 작성', completed: false, from: '이영희' },
-    {
-      id: '4',
-      title: '경쟁사 분석 보고서',
-      completed: false,
-      priority: 'medium' as const,
-      dueDate: 'D-3 (3/28)'
-    },
-    { id: '5', title: '주간 업무 보고', completed: false, dueDate: 'D-5 (3/30)' },
-    { id: '6', title: '포트폴리오 정리', completed: false }
-  ])
-
-  const toggleTask = (id: string): void => {
-    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)))
-  }
+  const today = new Date()
+  const dateString = today.toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'long'
+  })
 
   return (
-    <div className="h-full overflow-auto bg-[#F7F7F7] custom-scrollbar">
-      <div className="max-w-[1600px] mx-auto px-20 py-24 space-y-28">
-        {/* Section: Critical Dots */}
-        <section className="space-y-12">
-          <div className="flex items-center gap-3 border-b border-border/20 pb-6">
-            <h2 className="text-[14px] font-black tracking-[0.25em] uppercase px-1 text-text-secondary">
-              Critical Dots
-            </h2>
+    <div className="h-full overflow-auto bg-white">
+      <div className="max-w-[1200px] mx-auto px-8 py-5 space-y-5">
+        {/* Breadcrumb */}
+        <Breadcrumb items={[{ label: 'Dashboard' }]} />
+
+        {/* Header */}
+        <header>
+          <p className="text-xs text-[var(--text-placeholder)] font-medium">{dateString}</p>
+          <h1 className="text-2xl font-semibold text-[var(--text-primary)] mt-1">Dashboard</h1>
+        </header>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-4 gap-3">
+          <StatCard
+            icon={<FiCheckCircle size={14} />}
+            label="Completed"
+            value={24}
+            change={{ value: 12, isPositive: true }}
+            color="success"
+          />
+          <StatCard
+            icon={<FiClock size={14} />}
+            label="In Progress"
+            value={12}
+            change={{ value: 3, isPositive: false }}
+            color="primary"
+          />
+          <StatCard
+            icon={<FiAlertCircle size={14} />}
+            label="Urgent"
+            value={5}
+            subtext="needs attention"
+            color="error"
+          />
+          <StatCard
+            icon={<FiTrendingUp size={14} />}
+            label="Productivity"
+            value="87%"
+            change={{ value: 5, isPositive: true }}
+            color="primary"
+          />
+        </div>
+
+        {/* Charts Row */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="col-span-2">
+            <WeeklyActivityChart data={weeklyData} />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            <TaskItem
-              id="critical-1"
-              title="제안서 최종 수정"
-              completed={false}
-              priority="high"
-              time="2:00"
-              onToggle={() => {}}
-            />
-            <TaskItem
-              id="critical-2"
-              title="UI 디자인 검토"
-              completed={false}
-              priority="high"
-              from="김철수"
-              dueDate="1일 경과"
-              onToggle={() => {}}
-            />
-            <TaskItem
-              id="critical-3"
-              title="서버 부하 테스트"
-              completed={false}
-              priority="high"
-              time="8:00"
-              onToggle={() => {}}
-            />
+          <TaskStatusChart data={statusDistribution} />
+        </div>
+
+        {/* Bottom Row */}
+        <div className="grid grid-cols-3 gap-3 pb-6">
+          <div className="col-span-2">
+            <ProjectsChart data={projectData} />
           </div>
-        </section>
-
-        {/* Section: Today / Inbox (strictly 2 columns) */}
-        <div className="space-y-24">
-          <section className="space-y-12">
-            <div className="flex items-center justify-between border-b border-border/20 pb-6">
-              <h3 className="text-[14px] font-black tracking-[0.25em] uppercase text-text-secondary">
-                Today / Inbox
-              </h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-              {tasks
-                .filter((t) => t.time || t.from)
-                .map((task) => (
-                  <TaskItem key={task.id} {...task} onToggle={toggleTask} />
-                ))}
-
-              {/* Add New Hook */}
-              <button className="flex flex-col items-center justify-center p-12 rounded-[30px] border-2 border-dashed border-border/40 text-text-placeholder hover:border-primary/30 hover:text-primary transition-all group scale-100 active:scale-[0.98] bg-white/50 hover:bg-white shadow-sm hover:shadow-md h-full min-h-[240px]">
-                <div className="w-14 h-14 rounded-full bg-white shadow-sm flex items-center justify-center mb-4 group-hover:shadow-md transition-all">
-                  <FiPlus size={28} />
-                </div>
-                <span className="text-[15px] font-black tracking-tight">New Dot</span>
-              </button>
-            </div>
-          </section>
-
-          {/* Section: Backlog / Upcoming (strictly 2 columns) */}
-          <section className="space-y-12 pb-48">
-            <div className="flex items-center justify-between border-b border-border/20 pb-6">
-              <h3 className="text-[14px] font-black tracking-[0.25em] uppercase text-text-placeholder">
-                Backlog / Upcoming
-              </h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-              {tasks
-                .filter((t) => !t.time && !t.from)
-                .map((task) => (
-                  <TaskItem key={task.id} {...task} onToggle={toggleTask} />
-                ))}
-            </div>
-          </section>
+          <RecentActivity activities={recentActivity} />
         </div>
       </div>
     </div>

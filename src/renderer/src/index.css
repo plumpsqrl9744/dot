@@ -1,6 +1,66 @@
 @import 'tailwindcss';
 @config '../../../tailwind.config.ts';
 
+/* Global Design Tokens - Based on Sidebar Design */
+:root {
+  /* Text Colors */
+  --text-primary: #202124;
+  --text-secondary: rgba(32, 33, 36, 0.6);
+  --text-placeholder: rgba(32, 33, 36, 0.4);
+  --text-muted: rgba(32, 33, 36, 0.3);
+
+  /* Background Colors */
+  --bg-default: #FFFFFF;
+  --bg-secondary: #F7F7F7;
+  --bg-tertiary: #EBEBEB;
+  --bg-hover: rgba(0, 0, 0, 0.04);
+
+  /* Border Colors */
+  --border-default: rgba(0, 0, 0, 0.1);
+  --border-light: rgba(0, 0, 0, 0.06);
+
+  /* Primary Colors */
+  --primary: #2563EB;
+  --primary-hover: #1D4ED8;
+  --primary-bg: rgba(37, 99, 235, 0.1);
+  --primary-bg-subtle: rgba(37, 99, 235, 0.05);
+
+  /* Feedback Colors */
+  --success: #22C55E;
+  --warning: #F57C00;
+  --error: #D32F2F;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* Typography */
+  --font-size-xs: 11px;
+  --font-size-sm: 13px;
+  --font-size-base: 14px;
+  --font-size-lg: 15px;
+  --font-size-xl: 18px;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.2s ease;
+  --transition-slow: 0.3s ease;
+}
+
 /* Custom utilities */
 @utility dot-shadow {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06);

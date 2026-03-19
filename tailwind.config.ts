@@ -7,8 +7,8 @@ const config: Config = {
       colors: {
         // Primary Blue (Accent)
         primary: {
-          DEFAULT: '#007AFF',
-          hover: '#0066DD'
+          DEFAULT: 'var(--primary)',
+          hover: 'var(--primary-hover)'
         },
 
         // Supporting Blues
@@ -18,29 +18,27 @@ const config: Config = {
         },
 
         // Base/Neutrals
-        white: '#FFFFFF',
-        border: '#DADCE0',
+        white: 'var(--bg-default)',
+        border: 'var(--border-default)',
         text: {
           DEFAULT: 'var(--text-primary)',
           primary: 'var(--text-primary)',
           secondary: 'var(--text-secondary)',
           placeholder: 'var(--text-placeholder)',
+          muted: 'var(--text-muted)'
         },
-        placeholder: '#80868B',
+
+        // Backgrounds
+        bg: {
+          DEFAULT: 'var(--bg-default)',
+          secondary: 'var(--bg-secondary)',
+          hover: 'var(--bg-hover)'
+        },
 
         // Feedback Colors
-        success: '#22C55E',
-        warning: '#F97316',
-        error: '#EF4444',
-
-        // Sidebar
-        sidebar: {
-          DEFAULT: '#1a1d21',
-          hover: '#27292d',
-          active: '#1164A3',
-          text: '#D1D2D3',
-          'text-muted': '#9EA0A3'
-        }
+        success: 'var(--success)',
+        warning: 'var(--warning)',
+        error: 'var(--error)'
       },
       boxShadow: {
         dot: '0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.06)',

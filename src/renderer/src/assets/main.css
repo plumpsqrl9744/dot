@@ -1,12 +1,6 @@
 @import './base.css';
 
-:root {
-  --text-primary: #202124;
-  --text-secondary: rgba(32, 33, 36, 0.6);
-  --text-placeholder: rgba(32, 33, 36, 0.4);
-  --bg-dashboard: #F7F7F7;
-  --border-color: rgba(32, 33, 36, 0.1);
-}
+/* Design tokens are now defined in index.css */
 
 body {
   /* Removed: display: flex, align-items: center, justify-content: center, overflow: hidden */

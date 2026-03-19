@@ -1,31 +1,35 @@
-import {} from 'react'
-import { FiCheckSquare, FiSquare, FiMoreHorizontal, FiUser, FiClock } from 'react-icons/fi'
+import { FiCheckSquare, FiSquare, FiUser } from 'react-icons/fi'
+import { Badge } from '@renderer/shared/components'
 
 interface TaskItemProps {
   id: string
   title: string
   completed: boolean
+  /** 프로젝트/주제 태그 (예: AMS, WAS, Frontend 등) */
+  tag?: string
+  /** 마감 기한 표시 (예: D-3, D-1, 1일 경과 등) */
   dueDate?: string
-  priority?: 'low' | 'medium' | 'high'
-  from?: string
-  time?: string
+  /** 마감 상태: urgent(빨강), warning(노랑), safe(초록) */
+  dueStatus?: 'urgent' | 'warning' | 'safe'
+  /** 부여자 이름 (없으면 본인) */
+  assignedBy?: string
   onToggle: (id: string) => void
 }
 
-const tagStyles = {
-  low: 'bg-[#E3F2FD] text-[#007AFF]',
-  medium: 'bg-[#FFF3E0] text-[#F57C00]',
-  high: 'bg-[#FFEBEE] text-[#D32F2F]'
+const statusColors = {
+  urgent: 'var(--error)',
+  warning: 'var(--warning)',
+  safe: 'var(--success)'
 }
 
 export function TaskItem({
   id,
   title,
   completed,
+  tag,
   dueDate,
-  priority,
-  from,
-  time,
+  dueStatus = 'safe',
+  assignedBy,
   onToggle
 }: TaskItemProps): React.JSX.Element {
   const handleToggle = (): void => {
@@ -34,83 +38,84 @@ export function TaskItem({
 
   return (
     <div
-      className={`group flex flex-col gap-6 bg-white px-14 py-10 rounded-[32px] border transition-all duration-300 hover:shadow-xl hover:-translate-y-1 w-full ${
+      className={`group relative flex flex-col gap-2.5 px-3.5 py-3 rounded-[var(--radius-lg)] border transition-all duration-200 ease-out w-full ${
         completed
-          ? 'opacity-60 border-border/40'
-          : 'border-border/60 shadow-sm hover:border-primary/40'
+          ? 'opacity-60 border-[var(--border-light)] bg-[var(--bg-default)]'
+          : 'border-[var(--border-default)] bg-[var(--bg-default)] hover:bg-[var(--bg-secondary)] hover:border-[var(--border-default)]'
       }`}
+      style={{
+        boxShadow: 'none'
+      }}
+      onMouseEnter={(e) => {
+        if (!completed) {
+          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.04)'
+        }
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = 'none'
+      }}
     >
-      {/* Top: Title */}
-      <div className="flex justify-between items-start gap-4">
-        <h4
-          className={`text-[19px] font-bold leading-tight tracking-tight mt-1 transition-colors ${
-            completed ? 'text-text-placeholder line-through' : 'text-text-primary'
+      {/* Status Indicator (우측 상단 점) */}
+      <div
+        className="absolute top-3 right-3 w-1.5 h-1.5 rounded-full transition-transform duration-200 group-hover:scale-125"
+        style={{ backgroundColor: completed ? 'var(--text-muted)' : statusColors[dueStatus] }}
+        title={dueStatus === 'urgent' ? '마감 임박' : dueStatus === 'warning' ? '주의' : '여유'}
+      />
+
+      {/* Title */}
+      <h4
+        className={`text-sm font-medium leading-snug pr-4 transition-colors ${
+          completed ? 'text-text-placeholder line-through' : 'text-text-primary'
+        }`}
+      >
+        {title}
+      </h4>
+
+      {/* Tag (프로젝트/주제) */}
+      {tag && <Badge label={tag} />}
+
+      {/* Bottom: Checkbox + DueDate + Assignee */}
+      <div className="flex items-center justify-between pt-2 mt-0.5 border-t border-[var(--border-light)]">
+        {/* Checkbox & ID */}
+        <button
+          onClick={handleToggle}
+          className={`flex items-center gap-1.5 text-sm font-medium transition-all duration-150 ${
+            completed ? 'text-primary' : 'text-text-muted hover:text-text-secondary'
           }`}
         >
-          {title}
-        </h4>
-        <button className="opacity-0 group-hover:opacity-100 p-2 rounded-xl hover:bg-black/[0.04] text-text-placeholder transition-all shrink-0">
-          <FiMoreHorizontal size={24} />
+          {completed ? (
+            <FiCheckSquare size={14} className="text-primary" strokeWidth={2} />
+          ) : (
+            <FiSquare size={14} strokeWidth={1.5} className="transition-colors" />
+          )}
+          <span className="text-[10px] tracking-tight opacity-70">DOT-{id.toUpperCase()}</span>
         </button>
-      </div>
 
-      {/* Middle: Tag/Label */}
-      <div className="flex flex-wrap gap-2">
-        {priority && (
-          <span
-            className={`px-4 py-2 rounded-lg text-[11px] font-black uppercase tracking-[0.1em] ${tagStyles[priority]}`}
-          >
-            {priority === 'high' ? 'CRITICAL' : priority === 'medium' ? 'FEEDBACK' : 'INBOX'}
-          </span>
-        )}
-      </div>
-
-      {/* Bottom: ID/Checkbox & Avatars */}
-      <div className="flex items-center justify-between mt-4 pt-7 border-t border-border/10">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleToggle}
-            className={`flex items-center gap-3 text-sm font-bold transition-colors ${
-              completed ? 'text-primary' : 'text-text-secondary group-hover:text-text-primary'
-            }`}
-          >
-            {completed ? (
-              <FiCheckSquare size={22} className="text-primary" />
-            ) : (
-              <FiSquare size={22} />
-            )}
-            <span className="text-[15px] tracking-tight font-black opacity-80">
-              DOT-{id.toUpperCase()}
-            </span>
-          </button>
-        </div>
-
-        <div className="flex items-center gap-5">
-          {from && (
-            <div className="flex -space-x-4">
-              <div
-                className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-mid to-primary border-2 border-white flex items-center justify-center text-[12px] font-black text-white shadow-md relative z-10"
-                title={from}
-              >
-                {from[0]}
-              </div>
-              <div className="w-9 h-9 rounded-full bg-[#F1F3F4] border-2 border-white flex items-center justify-center text-text-placeholder shadow-sm">
-                <FiUser size={16} />
-              </div>
-            </div>
-          )}
-          {(dueDate || time) && (
-            <div
-              className={`flex items-center gap-2.5 px-4 py-2 rounded-2xl text-[13px] font-bold ${
-                completed
-                  ? 'text-text-placeholder bg-black/[0.03]'
-                  : 'text-text-primary bg-primary/5'
-              }`}
+        {/* Right side: DueDate + Assignee */}
+        <div className="flex items-center gap-2.5">
+          {/* Due Date */}
+          {dueDate && (
+            <span
+              className="text-[10px] font-semibold tracking-tight"
+              style={{
+                color: completed ? 'var(--text-muted)' : statusColors[dueStatus]
+              }}
             >
-              <FiClock size={16} />
-              <span>{time ? `${time} PM` : dueDate}</span>
-            </div>
+              {dueDate}
+            </span>
           )}
+
+          {/* Assignee Icon */}
+          <div
+            className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-semibold transition-transform duration-150 group-hover:scale-105 ${
+              assignedBy
+                ? 'bg-gradient-to-br from-primary to-blue-mid text-white shadow-sm'
+                : 'bg-bg-secondary text-text-placeholder'
+            }`}
+            title={assignedBy || '본인'}
+          >
+            {assignedBy ? assignedBy[0].toUpperCase() : <FiUser size={10} />}
+          </div>
         </div>
       </div>
     </div>
