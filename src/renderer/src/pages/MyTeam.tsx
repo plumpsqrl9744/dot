@@ -41,21 +41,82 @@ interface ReceivedInvite {
 }
 
 const mockMembers: TeamMember[] = [
-  { id: 'm1', name: '김철수', email: 'kim@dot.com', role: 'owner', status: 'online', tasksCount: 8, memberKey: 'DOT-KIM-7X2K' },
-  { id: 'm2', name: '이영희', email: 'lee@dot.com', role: 'admin', status: 'online', tasksCount: 5, memberKey: 'DOT-LEE-9M3P' },
-  { id: 'm3', name: '박지민', email: 'park@dot.com', role: 'member', status: 'away', tasksCount: 3, memberKey: 'DOT-PARK-4H8N' },
-  { id: 'm4', name: '정민수', email: 'jung@dot.com', role: 'member', status: 'online', tasksCount: 12, memberKey: 'DOT-JUNG-2F5Q' },
-  { id: 'm5', name: '최수진', email: 'choi@dot.com', role: 'member', status: 'offline', tasksCount: 4, memberKey: 'DOT-CHOI-6R1W' },
-  { id: 'm6', name: '한소희', email: 'han@dot.com', role: 'member', status: 'online', tasksCount: 6, memberKey: 'DOT-HAN-8T4Y' }
+  {
+    id: 'm1',
+    name: '김철수',
+    email: 'kim@dot.com',
+    role: 'owner',
+    status: 'online',
+    tasksCount: 8,
+    memberKey: 'DOT-KIM-7X2K'
+  },
+  {
+    id: 'm2',
+    name: '이영희',
+    email: 'lee@dot.com',
+    role: 'admin',
+    status: 'online',
+    tasksCount: 5,
+    memberKey: 'DOT-LEE-9M3P'
+  },
+  {
+    id: 'm3',
+    name: '박지민',
+    email: 'park@dot.com',
+    role: 'member',
+    status: 'away',
+    tasksCount: 3,
+    memberKey: 'DOT-PARK-4H8N'
+  },
+  {
+    id: 'm4',
+    name: '정민수',
+    email: 'jung@dot.com',
+    role: 'member',
+    status: 'online',
+    tasksCount: 12,
+    memberKey: 'DOT-JUNG-2F5Q'
+  },
+  {
+    id: 'm5',
+    name: '최수진',
+    email: 'choi@dot.com',
+    role: 'member',
+    status: 'offline',
+    tasksCount: 4,
+    memberKey: 'DOT-CHOI-6R1W'
+  },
+  {
+    id: 'm6',
+    name: '한소희',
+    email: 'han@dot.com',
+    role: 'member',
+    status: 'online',
+    tasksCount: 6,
+    memberKey: 'DOT-HAN-8T4Y'
+  }
 ]
 
 const mockPendingInvites: PendingInvite[] = [
-  { id: 'p1', memberKey: 'DOT-SONG-3K7L', name: '송민호', email: 'song@dot.com', sentAt: '2시간 전', status: 'pending' },
+  {
+    id: 'p1',
+    memberKey: 'DOT-SONG-3K7L',
+    name: '송민호',
+    email: 'song@dot.com',
+    sentAt: '2시간 전',
+    status: 'pending'
+  },
   { id: 'p2', memberKey: 'DOT-KANG-5N9M', sentAt: '1일 전', status: 'pending' }
 ]
 
 const mockReceivedInvites: ReceivedInvite[] = [
-  { id: 'r1', fromName: '박서준', fromEmail: 'psj@company.com', teamName: 'Design Team', receivedAt: '30분 전' }
+  {
+    id: 'r1',
+    fromName: '박서준',
+    fromEmail: 'psj@company.com',
+    teamName: 'Design Team',
+    receivedAt: '30분 전'
+  }
 ]
 
 const roleLabels = {
@@ -175,7 +236,9 @@ export function MyTeam({ showAddMember = false, onBack }: MyTeamProps): JSX.Elem
           <Card>
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-[var(--text-secondary)]">Member Key</label>
+                <label className="text-xs font-medium text-[var(--text-secondary)]">
+                  Member Key
+                </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -191,17 +254,18 @@ export function MyTeam({ showAddMember = false, onBack }: MyTeamProps): JSX.Elem
                     Send Invite
                   </Button>
                 </div>
-                {inviteError && (
-                  <p className="text-xs text-[var(--error)]">{inviteError}</p>
-                )}
+                {inviteError && <p className="text-xs text-[var(--error)]">{inviteError}</p>}
                 {inviteSuccess && (
-                  <p className="text-xs text-[var(--success)]">초대를 보냈습니다. 상대방이 수락하면 팀에 추가됩니다.</p>
+                  <p className="text-xs text-[var(--success)]">
+                    초대를 보냈습니다. 상대방이 수락하면 팀에 추가됩니다.
+                  </p>
                 )}
               </div>
 
               <div className="pt-2 border-t border-[var(--border-light)]">
                 <p className="text-xs text-[var(--text-muted)]">
-                  멤버 키는 Settings 페이지에서 확인할 수 있습니다. 초대를 보내면 상대방이 수락해야 팀에 추가됩니다.
+                  멤버 키는 Settings 페이지에서 확인할 수 있습니다. 초대를 보내면 상대방이 수락해야
+                  팀에 추가됩니다.
                 </p>
               </div>
             </div>
@@ -218,10 +282,7 @@ export function MyTeam({ showAddMember = false, onBack }: MyTeamProps): JSX.Elem
               <Card padding="none">
                 <div className="divide-y divide-[var(--border-light)]">
                   {pendingInvites.map((invite) => (
-                    <div
-                      key={invite.id}
-                      className="flex items-center justify-between px-4 py-3"
-                    >
+                    <div key={invite.id} className="flex items-center justify-between px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center">
                           <FiUserPlus size={14} className="text-[var(--text-muted)]" />
@@ -263,10 +324,7 @@ export function MyTeam({ showAddMember = false, onBack }: MyTeamProps): JSX.Elem
               <Card padding="none">
                 <div className="divide-y divide-[var(--border-light)]">
                   {receivedInvites.map((invite) => (
-                    <div
-                      key={invite.id}
-                      className="flex items-center justify-between px-4 py-3"
-                    >
+                    <div key={invite.id} className="flex items-center justify-between px-4 py-3">
                       <div className="flex items-center gap-3">
                         <Avatar name={invite.fromName} size="md" gradient />
                         <div>
@@ -366,12 +424,7 @@ export function MyTeam({ showAddMember = false, onBack }: MyTeamProps): JSX.Elem
                 className="flex items-center justify-between px-4 py-3 hover:bg-[var(--bg-hover)] transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <Avatar
-                    name={member.name}
-                    size="md"
-                    status={member.status}
-                    gradient
-                  />
+                  <Avatar name={member.name} size="md" status={member.status} gradient />
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-[var(--text-primary)]">

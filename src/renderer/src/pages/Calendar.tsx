@@ -8,6 +8,7 @@ import './Calendar.css'
 
 interface CalendarProps {
   onEventClick?: (eventId: string) => void
+  onCreateTask?: () => void
 }
 
 const sampleEvents = [
@@ -30,7 +31,7 @@ const sampleEvents = [
   { id: '6', title: '스프린트 회고', start: '2026-03-28', backgroundColor: 'rgb(168, 85, 247)' }
 ]
 
-export function Calendar({ onEventClick }: CalendarProps): JSX.Element {
+export function Calendar({ onEventClick, onCreateTask }: CalendarProps): JSX.Element {
   const today = new Date()
   const dateString = today.toLocaleDateString('ko-KR', {
     year: 'numeric',
@@ -56,7 +57,7 @@ export function Calendar({ onEventClick }: CalendarProps): JSX.Element {
             <h1 className="text-2xl font-semibold text-text-primary">Calendar</h1>
             <p className="text-sm text-text-placeholder mt-1">{dateString}</p>
           </div>
-          <Button icon={<FiPlus size={12} strokeWidth={2.5} />}>New Event</Button>
+          <Button icon={<FiPlus size={12} strokeWidth={2.5} />} onClick={onCreateTask}>New Task</Button>
         </header>
 
         {/* Legend */}

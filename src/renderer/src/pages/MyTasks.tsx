@@ -5,9 +5,10 @@ import { TaskItem, AddTaskCard } from '@renderer/features/tasks'
 
 interface MyTasksProps {
   onTaskClick?: (taskId: string) => void
+  onCreateTask?: () => void
 }
 
-export function MyTasks({ onTaskClick }: MyTasksProps): JSX.Element {
+export function MyTasks({ onTaskClick, onCreateTask }: MyTasksProps): JSX.Element {
   const [tasks, setTasks] = useState([
     {
       id: '1',
@@ -133,7 +134,7 @@ export function MyTasks({ onTaskClick }: MyTasksProps): JSX.Element {
                 ⌘K
               </kbd>
             </Button>
-            <Button icon={<FiPlus size={12} strokeWidth={2.5} />}>New</Button>
+            <Button icon={<FiPlus size={12} strokeWidth={2.5} />} onClick={onCreateTask}>New</Button>
           </div>
         </header>
 
@@ -142,7 +143,11 @@ export function MyTasks({ onTaskClick }: MyTasksProps): JSX.Element {
           options={[
             { value: 'all', label: 'All', count: tasks.length },
             { value: 'active', label: 'Active', count: tasks.filter((t) => !t.completed).length },
-            { value: 'completed', label: 'Completed', count: tasks.filter((t) => t.completed).length }
+            {
+              value: 'completed',
+              label: 'Completed',
+              count: tasks.filter((t) => t.completed).length
+            }
           ]}
           value={filter}
           onChange={setFilter}
@@ -151,10 +156,22 @@ export function MyTasks({ onTaskClick }: MyTasksProps): JSX.Element {
         {/* Urgent Tasks */}
         {urgentTasks.length > 0 && (
           <section>
-            <SectionHeader title="Urgent" count={urgentTasks.length} dotColor="error" className="mb-2.5" />
+            <SectionHeader
+              title="Urgent"
+              count={urgentTasks.length}
+              dotColor="error"
+              className="mb-2.5"
+            />
             <div className="grid grid-cols-3 gap-3">
               {urgentTasks.map((task) => (
-                <TaskItem key={task.id} {...task} onToggle={toggleTask} onClick={onTaskClick} onEdit={editTask} onDelete={deleteTask} />
+                <TaskItem
+                  key={task.id}
+                  {...task}
+                  onToggle={toggleTask}
+                  onClick={onTaskClick}
+                  onEdit={editTask}
+                  onDelete={deleteTask}
+                />
               ))}
             </div>
           </section>
@@ -163,10 +180,22 @@ export function MyTasks({ onTaskClick }: MyTasksProps): JSX.Element {
         {/* Warning Tasks */}
         {warningTasks.length > 0 && (
           <section>
-            <SectionHeader title="Due Soon" count={warningTasks.length} dotColor="warning" className="mb-2.5" />
+            <SectionHeader
+              title="Due Soon"
+              count={warningTasks.length}
+              dotColor="warning"
+              className="mb-2.5"
+            />
             <div className="grid grid-cols-3 gap-3">
               {warningTasks.map((task) => (
-                <TaskItem key={task.id} {...task} onToggle={toggleTask} onClick={onTaskClick} onEdit={editTask} onDelete={deleteTask} />
+                <TaskItem
+                  key={task.id}
+                  {...task}
+                  onToggle={toggleTask}
+                  onClick={onTaskClick}
+                  onEdit={editTask}
+                  onDelete={deleteTask}
+                />
               ))}
             </div>
           </section>
@@ -178,7 +207,14 @@ export function MyTasks({ onTaskClick }: MyTasksProps): JSX.Element {
             <SectionHeader title="Backlog" count={safeTasks.length} className="mb-2.5" />
             <div className="grid grid-cols-3 gap-3">
               {safeTasks.map((task) => (
-                <TaskItem key={task.id} {...task} onToggle={toggleTask} onClick={onTaskClick} onEdit={editTask} onDelete={deleteTask} />
+                <TaskItem
+                  key={task.id}
+                  {...task}
+                  onToggle={toggleTask}
+                  onClick={onTaskClick}
+                  onEdit={editTask}
+                  onDelete={deleteTask}
+                />
               ))}
               <AddTaskCard />
             </div>
@@ -188,10 +224,22 @@ export function MyTasks({ onTaskClick }: MyTasksProps): JSX.Element {
         {/* Completed Tasks */}
         {completedTasks.length > 0 && filter !== 'active' && (
           <section className="pb-6">
-            <SectionHeader title="Completed" count={completedTasks.length} muted className="mb-2.5" />
+            <SectionHeader
+              title="Completed"
+              count={completedTasks.length}
+              muted
+              className="mb-2.5"
+            />
             <div className="grid grid-cols-3 gap-3">
               {completedTasks.map((task) => (
-                <TaskItem key={task.id} {...task} onToggle={toggleTask} onClick={onTaskClick} onEdit={editTask} onDelete={deleteTask} />
+                <TaskItem
+                  key={task.id}
+                  {...task}
+                  onToggle={toggleTask}
+                  onClick={onTaskClick}
+                  onEdit={editTask}
+                  onDelete={deleteTask}
+                />
               ))}
             </div>
           </section>

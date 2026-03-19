@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Sidebar } from './components/layout/Sidebar'
 import { Header } from './components/layout/Header'
 import { Dashboard } from './pages/Dashboard'
@@ -41,39 +41,168 @@ function App(): React.JSX.Element {
   const [currentPage, setCurrentPage] = useState('dashboard')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
+  const [isNewTask, setIsNewTask] = useState(false)
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
   const [isNewTemplate, setIsNewTemplate] = useState(false)
   const [sidebarMenus, setSidebarMenus] = useState<SidebarMenuItem[]>(defaultSidebarMenus)
   const toast = useToast()
 
+  interface AppState {
+    page: string
+    taskId: string | null
+    isNewTask: boolean
+    templateId: string | null
+    isNewTemplate: boolean
+  }
+
+  const historyRef = useRef<AppState[]>([])
+  const forwardHistoryRef = useRef<AppState[]>([])
+  const currentStateRef = useRef<AppState>({ 
+    page: currentPage, 
+    taskId: selectedTaskId, 
+    isNewTask: isNewTask, 
+    templateId: selectedTemplateId, 
+    isNewTemplate: isNewTemplate 
+  })
+
+  useEffect(() => {
+    currentStateRef.current = {
+      page: currentPage,
+      taskId: selectedTaskId,
+      isNewTask: isNewTask,
+      templateId: selectedTemplateId,
+      isNewTemplate: isNewTemplate
+    }
+  }, [currentPage, selectedTaskId, isNewTask, selectedTemplateId, isNewTemplate])
+
+  const pushHistory = () => {
+    historyRef.current.push({ ...currentStateRef.current })
+    if (historyRef.current.length > 50) historyRef.current.shift()
+    // Clear forward history upon new action
+    forwardHistoryRef.current = []
+  }
+
+  const goBack = () => {
+    if (historyRef.current.length > 0) {
+      forwardHistoryRef.current.push({ ...currentStateRef.current })
+      if (forwardHistoryRef.current.length > 50) forwardHistoryRef.current.shift()
+
+      const lastState = historyRef.current.pop()!
+      setCurrentPage(lastState.page)
+      setSelectedTaskId(lastState.taskId)
+      setIsNewTask(lastState.isNewTask)
+      setSelectedTemplateId(lastState.templateId)
+      setIsNewTemplate(lastState.isNewTemplate)
+    } else {
+      if (selectedTaskId || isNewTask || selectedTemplateId || isNewTemplate) {
+        forwardHistoryRef.current.push({ ...currentStateRef.current })
+        setSelectedTaskId(null)
+        setIsNewTask(false)
+        setSelectedTemplateId(null)
+        setIsNewTemplate(false)
+      }
+    }
+  }
+
+  const goForward = () => {
+    if (forwardHistoryRef.current.length > 0) {
+      historyRef.current.push({ ...currentStateRef.current })
+      if (historyRef.current.length > 50) historyRef.current.shift()
+
+      const nextState = forwardHistoryRef.current.pop()!
+      setCurrentPage(nextState.page)
+      setSelectedTaskId(nextState.taskId)
+      setIsNewTask(nextState.isNewTask)
+      setSelectedTemplateId(nextState.templateId)
+      setIsNewTemplate(nextState.isNewTemplate)
+    }
+  }
+
+  useEffect(() => {
+    const handleGlobalBack = (e: MouseEvent | KeyboardEvent) => {
+      let isBack = false
+      let isForward = false
+
+      if (e.type === 'keydown') {
+        const kbEvent = e as KeyboardEvent
+        const target = kbEvent.target as HTMLElement
+        const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable
+        
+        if (!isInput) {
+          if (kbEvent.key === 'Backspace' || kbEvent.key === 'Escape') isBack = true
+          if (kbEvent.metaKey && kbEvent.key === 'ArrowLeft') isBack = true // Cmd + Left
+          if (kbEvent.metaKey && kbEvent.key === 'ArrowRight') isForward = true // Cmd + Right
+          if (kbEvent.altKey && kbEvent.key === 'ArrowLeft') isBack = true // Alt + Left
+          if (kbEvent.altKey && kbEvent.key === 'ArrowRight') isForward = true // Alt + Right
+        }
+      }
+      
+      if (e.type === 'mousedown') {
+        const mouseEvent = e as MouseEvent
+        if (mouseEvent.button === 3) { // Mouse 4 (Thumb back)
+          mouseEvent.preventDefault()
+          isBack = true
+        } else if (mouseEvent.button === 4) { // Mouse 5 (Thumb forward)
+          mouseEvent.preventDefault()
+          isForward = true
+        }
+      }
+
+      if (isBack) goBack()
+      if (isForward) goForward()
+    }
+
+    document.addEventListener('keydown', handleGlobalBack)
+    document.addEventListener('mousedown', handleGlobalBack)
+    return () => {
+      document.removeEventListener('keydown', handleGlobalBack)
+      document.removeEventListener('mousedown', handleGlobalBack)
+    }
+  }, [])
+
+
   const handleNavigate = (page: string): void => {
+    if (currentPage === page && !selectedTaskId && !isNewTask && !selectedTemplateId && !isNewTemplate) return
+    pushHistory()
     setCurrentPage(page)
     setSelectedTaskId(null)
+    setIsNewTask(false)
     setSelectedTemplateId(null)
     setIsNewTemplate(false)
   }
 
   const handleTaskClick = (taskId: string): void => {
+    if (selectedTaskId === taskId && !isNewTask) return
+    pushHistory()
     setSelectedTaskId(taskId)
+    setIsNewTask(false)
   }
 
-  const handleBackFromDetail = (): void => {
+  const handleCreateTask = (): void => {
+    pushHistory()
+    setIsNewTask(true)
     setSelectedTaskId(null)
   }
 
+  const handleBackFromDetail = (): void => {
+    goBack()
+  }
+
   const handleCreateTemplate = (): void => {
+    pushHistory()
     setIsNewTemplate(true)
     setSelectedTemplateId(null)
   }
 
   const handleEditTemplate = (templateId: string): void => {
+    if (selectedTemplateId === templateId && !isNewTemplate) return
+    pushHistory()
     setSelectedTemplateId(templateId)
     setIsNewTemplate(false)
   }
 
   const handleBackFromTemplateDetail = (): void => {
-    setSelectedTemplateId(null)
-    setIsNewTemplate(false)
+    goBack()
   }
 
   const toggleSidebar = (): void => {
@@ -103,8 +232,8 @@ function App(): React.JSX.Element {
             onNavigateToSettings={() => handleNavigate('settings')}
           />
           <main className="flex-1 overflow-hidden">
-            {selectedTaskId ? (
-              <TaskDetail taskId={selectedTaskId} onBack={handleBackFromDetail} />
+            {selectedTaskId || isNewTask ? (
+              <TaskDetail taskId={selectedTaskId} isNew={isNewTask} onBack={handleBackFromDetail} />
             ) : selectedTemplateId || isNewTemplate ? (
               <TemplateDetail
                 templateId={selectedTemplateId}
@@ -114,8 +243,8 @@ function App(): React.JSX.Element {
             ) : (
               <>
                 {currentPage === 'dashboard' && <Dashboard />}
-                {currentPage === 'tasks' && <MyTasks onTaskClick={handleTaskClick} />}
-                {currentPage === 'calendar' && <Calendar onEventClick={handleTaskClick} />}
+                {currentPage === 'tasks' && <MyTasks onTaskClick={handleTaskClick} onCreateTask={handleCreateTask} />}
+                {currentPage === 'calendar' && <Calendar onEventClick={handleTaskClick} onCreateTask={handleCreateTask} />}
                 {currentPage === 'templates' && (
                   <Templates
                     onCreateTemplate={handleCreateTemplate}

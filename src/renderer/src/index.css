@@ -116,3 +116,178 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #80868b;
 }
+
+/* Custom React-Datepicker Overrides - Premium UI */
+.react-datepicker {
+  font-family: inherit !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  padding: 0;
+}
+
+.react-datepicker__header {
+  background-color: transparent !important;
+  border-bottom: none !important;
+  padding-top: 0 !important;
+  padding-bottom: 4px !important;
+}
+
+.react-datepicker__current-month,
+.react-datepicker__navigation {
+  display: none !important; /* Hidden because we use custom header */
+}
+
+.react-datepicker__day-names {
+  display: flex !important;
+  justify-content: space-between;
+  margin-bottom: 0 !important;
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 8px;
+}
+
+.react-datepicker__day-name {
+  color: var(--text-secondary) !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  width: 38px !important;
+  line-height: 24px !important;
+  margin: 0 !important;
+}
+
+.react-datepicker__month {
+  margin: 8px 0 0 0 !important; /* Prevent overlap with header border */
+}
+
+.react-datepicker__week {
+  display: flex !important;
+  justify-content: space-between;
+}
+
+/* Base Day Settings */
+.react-datepicker__day {
+  color: var(--text-primary) !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  width: 38px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  margin: 2px 0 !important; /* Space between rows, zero horizontal space to connect items */
+  border-radius: 0 !important;
+  position: relative;
+  z-index: 1;
+  outline: none !important;
+}
+
+/* Hover effect base cancellation (prevents default gray square) */
+.react-datepicker__day:hover {
+  background-color: transparent !important;
+}
+
+/* Hover effect circle */
+.react-datepicker__day::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  right: 3px;
+  bottom: 2px;
+  border-radius: 50%;
+  z-index: -1;
+  transition: all 0.15s ease;
+  background-color: transparent;
+}
+
+.react-datepicker__day:hover:not(.react-datepicker__day--selected):not(.react-datepicker__day--keyboard-selected):not(.react-datepicker__day--in-selecting-range):not(.react-datepicker__day--in-range)::after {
+  background-color: var(--bg-hover) !important;
+}
+
+/* Range Contiguous Highlight */
+.react-datepicker__day--in-range,
+.react-datepicker__day--in-selecting-range,
+.react-datepicker__day--in-range:hover,
+.react-datepicker__day--in-selecting-range:hover {
+  background-color: var(--primary-bg-subtle) !important;
+}
+
+/* Range Start and End Radius to create a pill shape */
+.react-datepicker__day--range-start,
+.react-datepicker__day--selecting-range-start {
+  border-top-left-radius: 20px !important;
+  border-bottom-left-radius: 20px !important;
+}
+
+.react-datepicker__day--range-end,
+.react-datepicker__day--selecting-range-end {
+  border-top-right-radius: 20px !important;
+  border-bottom-right-radius: 20px !important;
+}
+
+/* If same day start and end */
+.react-datepicker__day--range-start.react-datepicker__day--range-end {
+  border-radius: 20px !important;
+}
+
+/* Selected solid circle inside */
+.react-datepicker__day--selected::after,
+.react-datepicker__day--range-start::after,
+.react-datepicker__day--range-end::after,
+.react-datepicker__day--selecting-range-start::after,
+.react-datepicker__day--selecting-range-end::after {
+  background-color: var(--primary) !important;
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--range-start,
+.react-datepicker__day--range-end,
+.react-datepicker__day--selecting-range-start,
+.react-datepicker__day--selecting-range-end,
+.react-datepicker__day--selected:hover,
+.react-datepicker__day--range-start:hover,
+.react-datepicker__day--range-end:hover,
+.react-datepicker__day--selecting-range-start:hover,
+.react-datepicker__day--selecting-range-end:hover {
+  color: #fff !important;
+  font-weight: 700 !important;
+  background-color: var(--primary-bg-subtle) !important;
+}
+
+/* Disable bg on single day selection without range */
+.react-datepicker__day--selected:not(.react-datepicker__day--in-range):not(.react-datepicker__day--in-selecting-range),
+.react-datepicker__day--selected:not(.react-datepicker__day--in-range):not(.react-datepicker__day--in-selecting-range):hover {
+  background-color: transparent !important;
+}
+
+/* Treat keyboard focus exactly like hover to prevent "ghost" selections when switching months */
+.react-datepicker__day--keyboard-selected:not(.react-datepicker__day--in-range):not(.react-datepicker__day--in-selecting-range) {
+  background-color: transparent !important;
+}
+.react-datepicker__day--keyboard-selected:not(.react-datepicker__day--selected):not(.react-datepicker__day--in-range):not(.react-datepicker__day--in-selecting-range)::after {
+  background-color: var(--bg-hover) !important;
+}
+
+/* Outside month fading */
+.react-datepicker__day--outside-month {
+  color: var(--text-muted) !important;
+  background-color: transparent !important;
+}
+
+.react-datepicker__day--outside-month::after {
+  display: none;
+}
+
+/* Hide native scrollbar for time scrollbar */
+.time-scrollbar::-webkit-scrollbar {
+  width: 0px;
+  display: none;
+}
+.time-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+/* Hide native clock icon in time inputs */
+input[type="time"]::-webkit-calendar-picker-indicator {
+  display: none !important;
+  -webkit-appearance: none !important;
+}

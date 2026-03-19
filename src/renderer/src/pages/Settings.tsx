@@ -22,6 +22,7 @@ interface StatusBadge {
   label: string
   color: string
   textColor: string
+  threshold?: number
 }
 
 interface CategoryBadge {
@@ -238,14 +239,55 @@ export function Settings({ sidebarMenus, onMenuToggle, onShowToast }: SettingsPr
     desktop: true
   })
 
-  // Status Badge State
   const [statusBadges, setStatusBadges] = useState<StatusBadge[]>([
-    { id: 'urgent', label: '긴급', color: '#EF4444', textColor: '#EF4444' },
-    { id: 'warning', label: '주의', color: '#F97316', textColor: '#F97316' },
+    { id: 'urgent', label: '긴급', color: '#EF4444', textColor: '#EF4444', threshold: 1 },
+    { id: 'warning', label: '주의', color: '#F97316', textColor: '#F97316', threshold: 3 },
     { id: 'safe', label: '여유', color: '#22C55E', textColor: '#22C55E' }
   ])
   const [editingStatus, setEditingStatus] = useState<string | null>(null)
   const [statusEditValue, setStatusEditValue] = useState('')
+
+  const handleStatusThresholdChange = (index: number, newThreshold: number) => {
+    setStatusBadges(prev => {
+      const next = [...prev]
+      next[index] = { ...next[index], threshold: newThreshold }
+      // Cascade bump subsequent thresholds
+      for (let i = index + 1; i < next.length - 1; i++) {
+        const prevTh = next[i - 1].threshold!
+        if (next[i].threshold! <= prevTh) {
+           next[i] = { ...next[i], threshold: prevTh + 1 }
+        }
+      }
+      return next
+    })
+  }
+
+  const addStatusBadge = () => {
+    setStatusBadges(prev => {
+      const lastRegularBadge = prev[prev.length - 2] || prev[0]
+      const newThreshold = (lastRegularBadge?.threshold || 0) + 2
+      
+      const newBadge: StatusBadge = {
+        id: Date.now().toString(),
+        label: '신규 상태',
+        color: '#3B82F6',
+        textColor: '#3B82F6',
+        threshold: newThreshold
+      }
+      const next = [...prev]
+      next.splice(next.length - 1, 0, newBadge)
+      return next
+    })
+  }
+
+  const removeStatusBadge = (id: string) => {
+    setStatusBadges(prev => {
+      if (prev.length <= 2) return prev // Ensure at least 1 threshold + 1 fallback remains
+      // do not allow removing the exact last item (fallback) directly by id check if we wanted, 
+      // but UI won't show delete on fallback anyway
+      return prev.filter(b => b.id !== id)
+    })
+  }
 
   // Category Badge State
   const [categoryBadges, setCategoryBadges] = useState<CategoryBadge[]>([
@@ -577,63 +619,123 @@ export function Settings({ sidebarMenus, onMenuToggle, onShowToast }: SettingsPr
         {/* Status Badge Settings */}
         <SettingsSection
           icon={<FiAlertCircle size={16} />}
-          title="Status Badges"
-          description="Customize status labels and colors"
+          title="Status Badges & Auto-rules"
+          description="마감일(D-Day)에 따른 상태 뱃지의 전환 기준 기한(Threshold)을 무제한으로 커스텀하세요."
         >
-          <div className="space-y-3">
-            {statusBadges.map((badge) => (
-              <div
-                key={badge.id}
-                className="flex items-center justify-between py-2 px-3 rounded-md bg-[var(--bg-secondary)]"
-              >
-                <div className="flex items-center gap-3">
-                  <Dot color={badge.color} size="md" />
-                  {editingStatus === badge.id ? (
-                    <input
-                      type="text"
-                      value={statusEditValue}
-                      onChange={(e) => setStatusEditValue(e.target.value)}
-                      className="h-7 px-2 bg-white border border-[var(--border-default)] rounded-md text-sm text-[var(--text-primary)] focus:outline-none"
-                      autoFocus
-                    />
-                  ) : (
-                    <span className="text-sm font-medium text-[var(--text-primary)]">
-                      {badge.label}
-                    </span>
-                  )}
+          <div className="space-y-4">
+            {statusBadges.map((badge, idx) => {
+              const isFirst = idx === 0
+              const isLast = idx === statusBadges.length - 1
+              
+              const prevThreshold = isFirst ? 0 : statusBadges[idx - 1].threshold!
+
+              let description = ''
+              if (isLast) {
+                description = `마감 ${prevThreshold + 1}일 이상 남은 '그 외 모든 일정'을 뜻합니다.`
+              } else if (isFirst) {
+                description = `설정한 기한(${badge.threshold}일)만큼 남았거나 지났을 때 표시됩니다.`
+              } else {
+                description = `앞선 단계에 해당되지 않으면서 ${badge.threshold}일 이하로 남았을 때 표시됩니다.`
+              }
+
+              return (
+                <div
+                  key={badge.id}
+                  className={`p-3.5 border rounded-xl transition-all ${editingStatus === badge.id ? 'border-[var(--primary)] bg-primary/5 shadow-sm' : 'border-[var(--border-light)] bg-white hover:border-[var(--border-default)]'}`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <Dot color={badge.color} size="md" />
+                      {editingStatus === badge.id ? (
+                        <input
+                          type="text"
+                          value={statusEditValue}
+                          onChange={(e) => setStatusEditValue(e.target.value)}
+                          className="h-8 px-2 w-28 bg-white border border-[var(--border-default)] rounded-md text-sm text-[var(--text-primary)] font-bold focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+                          autoFocus
+                          placeholder="라벨"
+                        />
+                      ) : (
+                        <span className="text-[13px] font-bold tracking-wide" style={{ color: badge.color }}>
+                          {badge.label}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <ColorPicker
+                        value={badge.color}
+                        onChange={(color) => updateStatusBadge(badge.id, { color, textColor: color })}
+                        colors={STATUS_COLORS}
+                      />
+                      <div className="w-px h-3 bg-[var(--border-default)] mx-1" />
+                      {editingStatus === badge.id ? (
+                        <>
+                          <button onClick={() => saveStatusEdit(badge.id)} className="w-6 h-6 flex items-center justify-center rounded-md bg-[var(--primary)] text-white hover:opacity-90 transition-opacity">
+                            <FiCheck size={13} />
+                          </button>
+                          <button onClick={() => setEditingStatus(null)} className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] transition-colors">
+                            <FiX size={13} />
+                          </button>
+                        </>
+                      ) : (
+                        <button onClick={() => startEditStatus(badge)} className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] transition-colors">
+                          <FiEdit2 size={13} />
+                        </button>
+                      )}
+                      
+                      {!isLast && statusBadges.length > 2 && (
+                        <button onClick={() => removeStatusBadge(badge.id)} className="w-6 h-6 flex items-center justify-center rounded-md hover:bg-[var(--error)]/10 text-[var(--text-muted)] hover:text-[var(--error)] transition-colors">
+                          <FiTrash2 size={13} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="pt-3 border-t border-[var(--border-light)] flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] font-medium text-[var(--text-placeholder)] tracking-wide">{description}</span>
+                    </div>
+                    
+                    {!isLast && (
+                      <div className="flex items-center gap-1.5 bg-[var(--bg-secondary)] px-2.5 py-1.5 rounded-[8px] border border-[var(--border-light)] shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+                        <span className="text-[11px] font-medium text-[var(--text-secondary)]">마감</span>
+                        <div className="relative">
+                          <select
+                            value={badge.threshold}
+                            onChange={(e) => handleStatusThresholdChange(idx, parseInt(e.target.value))}
+                            className="text-[12px] font-bold text-[var(--primary)] bg-transparent appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-[var(--primary)] rounded text-center pl-1 pr-3 py-0.5"
+                          >
+                             {Array.from({length: 61}, (_, i) => i).map(v => (
+                                <option key={v} value={v} disabled={!isFirst && v <= prevThreshold}>{v}일</option>
+                             ))}
+                          </select>
+                          <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none">
+                            <svg width="8" height="8" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                               <path d="M3 4.5L6 7.5L9 4.5" stroke="var(--primary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </div>
+                        </div>
+                        <span className="text-[11px] font-medium text-[var(--text-secondary)]">이하 잔여 시 전환</span>
+                      </div>
+                    )}
+                    {isLast && (
+                       <div className="flex items-center bg-[var(--bg-secondary)] px-3 py-1.5 rounded-[8px] border border-[var(--border-light)]">
+                         <span className="text-[11px] font-bold text-[var(--success)] tracking-wide">그 외 전부 적용</span>
+                       </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <ColorPicker
-                    value={badge.color}
-                    onChange={(color) => updateStatusBadge(badge.id, { color, textColor: color })}
-                    colors={STATUS_COLORS}
-                  />
-                  {editingStatus === badge.id ? (
-                    <>
-                      <button
-                        onClick={() => saveStatusEdit(badge.id)}
-                        className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-[var(--bg-hover)] text-[var(--success)]"
-                      >
-                        <FiCheck size={14} />
-                      </button>
-                      <button
-                        onClick={() => setEditingStatus(null)}
-                        className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-[var(--bg-hover)] text-[var(--text-muted)]"
-                      >
-                        <FiX size={14} />
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => startEditStatus(badge)}
-                      className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-[var(--bg-hover)] text-[var(--text-muted)]"
-                    >
-                      <FiEdit2 size={14} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+              )
+            })}
+            
+            <button
+              onClick={addStatusBadge}
+              className="w-full h-10 mt-2 flex items-center justify-center gap-2 border border-dashed border-[var(--border-default)] rounded-xl text-sm font-semibold text-[var(--text-secondary)] hover:border-[var(--primary)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-all"
+            >
+              <FiPlus size={16} />
+              새 상태 규칙 추가하기
+            </button>
           </div>
         </SettingsSection>
 
