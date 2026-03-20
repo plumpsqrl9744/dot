@@ -1,35 +1,20 @@
 import { JSX, useState, useRef, useEffect } from 'react'
-import { FiArrowLeft, FiEdit2, FiTrash2, FiCheck, FiX, FiChevronDown, FiCalendar, FiUser, FiTag, FiClock, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
-import { Button, Badge, Avatar, Dot, Breadcrumb } from '@renderer/shared/components'
+import { FiArrowLeft, FiEdit2, FiTrash2, FiCheck, FiX, FiChevronDown, FiCalendar, FiUser, FiTag, FiClock, FiChevronLeft, FiChevronRight, FiPlus, FiSquare, FiCheckSquare } from 'react-icons/fi'
+import { Button, Badge, Avatar, Dot, Breadcrumb, ProgressBar } from '@renderer/shared/components'
 import DatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
+import { useTasks, useToasts } from '../store'
+import { TAGS, FOLLOW_LIST, AMPM, HOURS_12, MINUTES } from '../constants/form-options'
+import type { Task } from '../types'
+import { isTaskCompleted, getTaskProgress, getSubTaskProgress } from '../types'
 
 interface TaskDetailProps {
   taskId: string | null
   isNew?: boolean
   onBack: () => void
 }
-
-interface TaskData {
-  id: string
-  title: string
-  description?: string
-  completed: boolean
-  tag?: string
-  dueDate?: string
-  dueStatus?: 'urgent' | 'warning' | 'safe'
-  assignedBy?: string
-  createdAt?: string
-}
-
-const MOCK_TAGS = ['기획', '디자인', '개발', '마케팅', '프론트엔드', '백엔드', 'AMS', 'WAS']
-const FOLLOW_LIST = ['본인', '김철수', '이영희', '박지성', '손흥민']
-
-const AMPM = ['오전', '오후'] as const
-const HOURS_12 = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'))
-const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'))
 
 const parseTime = (timeStr: string) => {
   const [hStr, mStr] = timeStr.split(':')
@@ -47,61 +32,62 @@ const formatTime = (ampm: '오전' | '오후', hour: string, minute: string) => 
   return `${String(h).padStart(2, '0')}:${minute}`
 }
 
-// Mock data
-const mockTasks: Record<string, TaskData> = {
-  '1': {
-    id: '1',
-    title: '마케팅 미팅 회의록 정리',
-    description: '3월 마케팅 전략 회의 내용을 정리하고 팀원들에게 공유합니다.\n\n- 신규 캠페인 아이디어 정리\n- 예산 배분 논의 내용\n- 다음 미팅 일정 확정',
-    completed: false,
-    tag: '마케팅',
-    dueDate: '2026-03-24 18:00',
-    dueStatus: 'urgent',
-    assignedBy: '김철수',
-    createdAt: '2026-03-15'
-  },
-  '2': {
-    id: '2',
-    title: '클라이언트 메일 발송',
-    description: '프로젝트 진행 상황 업데이트 메일을 클라이언트에게 발송합니다.',
-    completed: true,
-    tag: 'AMS',
-    dueDate: '2026-03-18 10:00',
-    dueStatus: 'safe',
-    createdAt: '2026-03-18'
-  }
-}
-
 export function TaskDetail({ taskId, isNew = false, onBack }: TaskDetailProps): JSX.Element {
+  const { getTaskById, updateTask, addTask, deleteTask, toggleSubTask, toggleChecklist, addSubTask, addChecklist, deleteSubTask, deleteChecklist } = useTasks()
+  const { success } = useToasts()
+
   const defaultDateStr = format(new Date(), 'yyyy-MM-dd')
-  const initialTask = isNew ? {
-    id: 'new',
-    title: '',
-    description: '',
-    completed: false,
-    createdAt: defaultDateStr
-  } : mockTasks[taskId || '1'] || {
-    id: taskId || 'unknown',
-    title: `Task ${taskId}`,
-    description: '상세 내용이 없습니다.',
-    completed: false,
-    createdAt: defaultDateStr
-  }
+
+  const existingTask = taskId ? getTaskById(taskId) : undefined
+
+  const task: Task = isNew
+    ? {
+        id: `new-${Date.now()}`,
+        title: '',
+        description: '',
+        subTasks: [],
+        createdAt: defaultDateStr
+      }
+    : existingTask || {
+        id: taskId || 'unknown',
+        title: `Task ${taskId}`,
+        description: '상세 내용이 없습니다.',
+        subTasks: [],
+        createdAt: defaultDateStr
+      }
 
   const [isEditing, setIsEditing] = useState(isNew)
-  
+
   const [editForm, setEditForm] = useState({
-    title: initialTask.title,
-    description: initialTask.description || '',
-    tag: initialTask.tag || '',
+    title: task.title,
+    description: task.description || '',
+    tag: task.tag || '',
     dueDateObj: {
       isSameDay: true,
       startDate: new Date() as Date | null,
       endDate: new Date() as Date | null,
       time: '18:00'
     },
-    assignedBy: initialTask.assignedBy || '본인'
+    assignedBy: task.assignedBy || '본인'
   })
+
+  // Sync form when task data changes (e.g. navigating to a different task)
+  useEffect(() => {
+    if (!isEditing) {
+      setEditForm({
+        title: task.title,
+        description: task.description || '',
+        tag: task.tag || '',
+        dueDateObj: {
+          isSameDay: true,
+          startDate: new Date(),
+          endDate: new Date(),
+          time: '18:00'
+        },
+        assignedBy: task.assignedBy || '본인'
+      })
+    }
+  }, [taskId])
 
   // Popover states
   const [openDropdown, setOpenDropdown] = useState<'tag' | 'dueDate' | 'assignee' | null>(null)
@@ -127,9 +113,14 @@ export function TaskDetail({ taskId, isNew = false, onBack }: TaskDetailProps): 
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [openDropdown, showTimeDropdown])
 
-  const task = initialTask
-
   const handleEdit = (): void => {
+    setEditForm({
+      title: task.title,
+      description: task.description || '',
+      tag: task.tag || '',
+      dueDateObj: editForm.dueDateObj,
+      assignedBy: task.assignedBy || '본인'
+    })
     setIsEditing(true)
   }
 
@@ -138,15 +129,54 @@ export function TaskDetail({ taskId, isNew = false, onBack }: TaskDetailProps): 
       title: task.title,
       description: task.description || '',
       tag: task.tag || '',
-      dueDateObj: editForm.dueDateObj, // Retain what we had or reset.
+      dueDateObj: editForm.dueDateObj,
       assignedBy: task.assignedBy || '본인'
     })
     setIsEditing(false)
   }
 
   const handleSave = (): void => {
-    console.log('Saving:', editForm)
+    const { isSameDay, startDate, endDate, time } = editForm.dueDateObj
+    let dueDate: string | undefined
+    if (startDate) {
+      const startStr = format(startDate, 'yyyy-MM-dd')
+      if (isSameDay) {
+        dueDate = `${startStr} ${time}`
+      } else {
+        const endStr = endDate ? format(endDate, 'yyyy-MM-dd') : startStr
+        dueDate = `${startStr} ~ ${endStr} ${time}`
+      }
+    }
+
+    const updates: Partial<Task> = {
+      title: editForm.title,
+      description: editForm.description,
+      tag: editForm.tag || undefined,
+      dueDate,
+      assignedBy: editForm.assignedBy === '본인' ? undefined : editForm.assignedBy
+    }
+
+    if (isNew) {
+      const newTask: Task = {
+        id: `task-${Date.now()}`,
+        subTasks: [],
+        createdAt: defaultDateStr,
+        ...updates,
+        title: editForm.title || '제목 없음'
+      }
+      addTask(newTask)
+      success('태스크가 생성되었습니다')
+    } else {
+      updateTask(task.id, updates)
+      success('태스크가 저장되었습니다')
+    }
     setIsEditing(false)
+  }
+
+  const handleDelete = (): void => {
+    deleteTask(task.id)
+    success('태스크가 삭제되었습니다')
+    onBack()
   }
 
   const handleChange = (field: string, value: string): void => {
@@ -156,10 +186,10 @@ export function TaskDetail({ taskId, isNew = false, onBack }: TaskDetailProps): 
   const formatDueDate = (): string => {
     const { isSameDay, startDate, endDate, time } = editForm.dueDateObj
     if (!startDate) return '날짜 선택'
-    
+
     const startStr = format(startDate, 'yyyy-MM-dd')
     if (isSameDay) return `${startStr} ${time}`
-    
+
     const endStr = endDate ? format(endDate, 'yyyy-MM-dd') : '?'
     return `${startStr} ~ ${endStr} ${time}`
   }
@@ -215,7 +245,7 @@ export function TaskDetail({ taskId, isNew = false, onBack }: TaskDetailProps): 
                   </span>
                 )}
                 {(!isEditing && task.tag) && <Badge label={task.tag} />}
-                {task.completed && (
+                {isTaskCompleted(task) && (
                   <Badge label="완료" variant="gray" size="sm" uppercase={false} />
                 )}
               </div>
@@ -228,7 +258,7 @@ export function TaskDetail({ taskId, isNew = false, onBack }: TaskDetailProps): 
                 ) : (
                   <>
                     <Button variant="ghost" size="xs" icon={<FiEdit2 size={13} />} onClick={handleEdit}>Edit</Button>
-                    <Button variant="ghost" size="xs" icon={<FiTrash2 size={13} />} className="text-[var(--error)] hover:text-[var(--error)]">Delete</Button>
+                    <Button variant="ghost" size="xs" icon={<FiTrash2 size={13} />} className="text-[var(--error)] hover:text-[var(--error)]" onClick={handleDelete}>Delete</Button>
                   </>
                 )}
               </div>
@@ -243,7 +273,7 @@ export function TaskDetail({ taskId, isNew = false, onBack }: TaskDetailProps): 
                 placeholder="태스크 제목을 입력하세요"
               />
             ) : (
-              <h1 className={`text-lg font-semibold ${task.completed ? 'text-[var(--text-muted)] line-through' : 'text-[var(--text-primary)]'}`}>
+              <h1 className={`text-lg font-semibold ${isTaskCompleted(task) ? 'text-[var(--text-muted)] line-through' : 'text-[var(--text-primary)]'}`}>
                 {task.title || '제목 없음'}
               </h1>
             )}
@@ -267,7 +297,7 @@ export function TaskDetail({ taskId, isNew = false, onBack }: TaskDetailProps): 
                     {openDropdown === 'tag' && (
                       <div className="absolute top-10 left-0 w-40 bg-white border border-[var(--border-default)] shadow-lg rounded-md overflow-hidden z-20">
                         <div className="max-h-48 overflow-y-auto py-1">
-                          {MOCK_TAGS.map(tag => (
+                          {TAGS.map(tag => (
                             <button
                               key={tag}
                               onClick={() => { handleChange('tag', tag); setOpenDropdown(null) }}
@@ -303,11 +333,11 @@ export function TaskDetail({ taskId, isNew = false, onBack }: TaskDetailProps): 
                                 setEditForm(prev => {
                                   const { startDate, endDate } = prev.dueDateObj
                                   const nextStartDate = (isSameDay && endDate) ? endDate : startDate
-                                  
+
                                   return {
                                     ...prev,
-                                    dueDateObj: { 
-                                      ...prev.dueDateObj, 
+                                    dueDateObj: {
+                                      ...prev.dueDateObj,
                                       isSameDay,
                                       startDate: nextStartDate,
                                       endDate: isSameDay ? nextStartDate : endDate
@@ -320,7 +350,7 @@ export function TaskDetail({ taskId, isNew = false, onBack }: TaskDetailProps): 
                             당일 마감
                           </label>
                           <div className="relative" ref={timeRef}>
-                            <div 
+                            <div
                               onClick={() => setShowTimeDropdown(!showTimeDropdown)}
                               className="flex items-center gap-1.5 py-1.5 px-3 bg-[var(--bg-secondary)] border border-[var(--border-light)] rounded-lg hover:border-primary/50 transition-all cursor-pointer select-none"
                             >
@@ -381,7 +411,7 @@ export function TaskDetail({ taskId, isNew = false, onBack }: TaskDetailProps): 
                             )}
                           </div>
                         </div>
-                        
+
                         <div className="flex justify-center">
                           {editForm.dueDateObj.isSameDay ? (
                             <DatePicker
@@ -489,6 +519,137 @@ export function TaskDetail({ taskId, isNew = false, onBack }: TaskDetailProps): 
               <div className="text-sm text-[var(--text-secondary)] leading-relaxed whitespace-pre-wrap">
                 {task.description || '작성된 설명이 없습니다.'}
               </div>
+            )}
+          </div>
+
+          {/* SubTasks + Checklists Section */}
+          <div className="border-t border-[var(--border-light)]" />
+          <div className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-medium text-[var(--text-muted)]">하위 항목</h3>
+                {task.subTasks.length > 0 && (
+                  <span className="text-[10px] font-medium text-[var(--text-placeholder)] tabular-nums">
+                    {getTaskProgress(task).completed}/{getTaskProgress(task).total}
+                  </span>
+                )}
+              </div>
+              {!isNew && (
+                <button
+                  onClick={() => {
+                    addSubTask(task.id, {
+                      id: `st-${Date.now()}`,
+                      title: '새 하위 항목',
+                      completed: false,
+                      checklist: []
+                    })
+                  }}
+                  className="flex items-center gap-1 text-xs text-[var(--primary)] hover:text-[var(--primary-hover)] transition-colors"
+                >
+                  <FiPlus size={12} />
+                  추가
+                </button>
+              )}
+            </div>
+
+            {task.subTasks.length > 0 ? (
+              <div className="space-y-3">
+                {task.subTasks.map((subTask) => {
+                  const stProgress = getSubTaskProgress(subTask)
+                  return (
+                    <div key={subTask.id} className="rounded-lg border border-[var(--border-light)] overflow-hidden">
+                      {/* SubTask header */}
+                      <div className={`flex items-center gap-3 px-3 py-2.5 ${subTask.completed ? 'bg-[var(--bg-secondary)] opacity-60' : 'bg-[var(--bg-default)]'}`}>
+                        <button
+                          onClick={() => toggleSubTask(task.id, subTask.id)}
+                          className="shrink-0 text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors"
+                        >
+                          {subTask.completed
+                            ? <FiCheckSquare size={16} className="text-[var(--primary)]" />
+                            : <FiSquare size={16} />
+                          }
+                        </button>
+                        <span className={`text-sm flex-1 ${subTask.completed ? 'text-[var(--text-placeholder)] line-through' : 'text-[var(--text-primary)]'}`}>
+                          {subTask.title}
+                        </span>
+                        {subTask.checklist.length > 0 && (
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="text-[10px] text-[var(--text-muted)] tabular-nums">
+                              {stProgress.completed}/{stProgress.total}
+                            </span>
+                            <div className="w-10">
+                              <ProgressBar value={stProgress.completed} max={stProgress.total || 1} color={subTask.completed ? 'success' : 'primary'} size="xs" />
+                            </div>
+                          </div>
+                        )}
+                        {subTask.dueDate && !subTask.completed && (
+                          <span
+                            className="text-[10px] font-semibold tabular-nums shrink-0"
+                            style={{ color: subTask.dueStatus === 'urgent' ? 'var(--error)' : subTask.dueStatus === 'warning' ? 'var(--warning)' : 'var(--success)' }}
+                          >
+                            {subTask.dueDate}
+                          </span>
+                        )}
+                        <button
+                          onClick={() => deleteSubTask(task.id, subTask.id)}
+                          className="shrink-0 w-6 h-6 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--error)] transition-colors rounded hover:bg-[var(--error)]/10"
+                        >
+                          <FiTrash2 size={12} />
+                        </button>
+                      </div>
+
+                      {/* Checklist items */}
+                      {subTask.checklist.length > 0 && (
+                        <div className="border-t border-[var(--border-light)] px-3 py-2 space-y-1 bg-[var(--bg-secondary)]/50">
+                          {subTask.checklist.map((item) => (
+                            <div key={item.id} className="flex items-center gap-2 py-0.5 group/cl">
+                              <button
+                                onClick={() => toggleChecklist(task.id, subTask.id, item.id)}
+                                className="shrink-0 text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors"
+                              >
+                                {item.completed
+                                  ? <FiCheckSquare size={13} className="text-[var(--primary)]" />
+                                  : <FiSquare size={13} />
+                                }
+                              </button>
+                              <span className={`text-xs flex-1 ${item.completed ? 'text-[var(--text-placeholder)] line-through' : 'text-[var(--text-secondary)]'}`}>
+                                {item.text}
+                              </span>
+                              <button
+                                onClick={() => deleteChecklist(task.id, subTask.id, item.id)}
+                                className="shrink-0 opacity-0 group-hover/cl:opacity-100 w-5 h-5 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--error)] transition-all rounded"
+                              >
+                                <FiX size={11} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Add checklist item */}
+                      {!isNew && (
+                        <div className="border-t border-[var(--border-light)] px-3 py-1.5">
+                          <button
+                            onClick={() => {
+                              addChecklist(task.id, subTask.id, {
+                                id: `cl-${Date.now()}`,
+                                text: '새 체크항목',
+                                completed: false
+                              })
+                            }}
+                            className="flex items-center gap-1 text-[10px] text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors"
+                          >
+                            <FiPlus size={10} />
+                            체크항목 추가
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="text-xs text-[var(--text-placeholder)]">하위 항목이 없습니다.</p>
             )}
           </div>
         </div>

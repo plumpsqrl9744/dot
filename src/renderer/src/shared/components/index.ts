@@ -32,5 +32,8 @@ export type { ContextMenuItem, ContextMenuProps, ContextMenuSubItem } from './Co
 export { Breadcrumb } from './Breadcrumb'
 export type { BreadcrumbProps, BreadcrumbItem } from './Breadcrumb'
 
+export { Modal } from './Modal'
+export type { ModalProps } from './Modal'
+
 export { Toast, ToastContainer } from './Toast'
 export type { ToastProps, ToastType } from './Toast'

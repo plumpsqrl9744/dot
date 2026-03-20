@@ -11,10 +11,13 @@ import {
   FiX,
   FiTrash2,
   FiCopy,
-  FiKey
+  FiKey,
+  FiMail,
+  FiCpu
 } from 'react-icons/fi'
-import { Breadcrumb, Button, Avatar, Badge, Dot } from '@renderer/shared/components'
-import type { SidebarMenuItem } from '../App'
+import { Breadcrumb, Button, Avatar, Dot } from '@renderer/shared/components'
+import { useMail } from '../store'
+import type { SidebarMenuItem } from '../types'
 
 // Types
 interface StatusBadge {
@@ -206,6 +209,183 @@ function ColorPicker({
         />
       ))}
     </div>
+  )
+}
+
+// LLM Model Options
+const LLM_MODELS = [
+  { label: 'Qwen2.5 3B (추천)', value: 'qwen2.5:3b' },
+  { label: 'EXAONE 3.5 2.4B', value: 'exaone3.5:2.4b' },
+  { label: 'Gemma 3 4B', value: 'gemma3:4b' }
+]
+
+const POLLING_INTERVALS = [
+  { label: '5분', value: 5 },
+  { label: '15분', value: 15 },
+  { label: '30분', value: 30 },
+  { label: '60분', value: 60 },
+  { label: '수동', value: 0 }
+]
+
+// Mail Analysis Settings Section
+function MailSettingsSection({
+  onShowToast
+}: {
+  onShowToast?: (title: string, message?: string) => void
+}): JSX.Element {
+  const { mailConnection, autoAnalysis, toggleAutoAnalysis } = useMail()
+
+  const [imapServer, setImapServer] = useState('mail.hanbiro.com')
+  const [imapPort, setImapPort] = useState('993')
+  const [imapEmail, setImapEmail] = useState('')
+  const [imapPassword, setImapPassword] = useState('')
+  const [selectedModel, setSelectedModel] = useState('qwen2.5:3b')
+  const [pollingInterval, setPollingInterval] = useState(15)
+  const [isTesting, setIsTesting] = useState(false)
+  const [testResult, setTestResult] = useState<'success' | 'error' | null>(null)
+
+  const handleTestConnection = (): void => {
+    if (!imapEmail || !imapPassword) {
+      onShowToast?.('연결 실패', '이메일과 비밀번호를 입력해주세요.')
+      return
+    }
+    setIsTesting(true)
+    setTestResult(null)
+    // Mock: 2초 후 성공
+    setTimeout(() => {
+      setIsTesting(false)
+      setTestResult('success')
+      onShowToast?.('연결 성공', 'IMAP 서버에 정상적으로 연결되었습니다.')
+      setImapPassword('') // 테스트 후 비밀번호 clear (safeStorage로 전달 가정)
+    }, 2000)
+  }
+
+  return (
+    <SettingsSection
+      icon={<FiMail size={16} />}
+      title="Mail Analysis"
+      description="한비로 메일 연동 및 LLM 분석 설정"
+    >
+      <div className="space-y-5">
+        {/* Connection Status */}
+        <div className="flex items-center justify-between py-2">
+          <div className="flex items-center gap-2.5">
+            <Dot
+              color={mailConnection.isConnected ? 'var(--success)' : 'var(--error)'}
+              size="sm"
+            />
+            <div>
+              <p className="text-sm font-medium text-[var(--text-primary)]">
+                {mailConnection.isConnected ? '연결됨' : '연결 안 됨'}
+              </p>
+              {mailConnection.lastSyncAt && (
+                <p className="text-xs text-[var(--text-placeholder)]">
+                  마지막 동기화: {mailConnection.lastSyncAt}
+                </p>
+              )}
+            </div>
+          </div>
+          <Toggle
+            checked={autoAnalysis}
+            onChange={toggleAutoAnalysis}
+            label="자동 분석"
+          />
+        </div>
+
+        {/* IMAP Settings */}
+        <div className="border-t border-[var(--border-light)] pt-4">
+          <div className="flex items-center gap-2 mb-4">
+            <FiMail size={14} className="text-[var(--text-muted)]" />
+            <span className="text-sm font-medium text-[var(--text-primary)]">IMAP 설정</span>
+          </div>
+          <div className="space-y-3">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2">
+                <InputField
+                  label="받는 메일 서버"
+                  value={imapServer}
+                  onChange={setImapServer}
+                  placeholder="mail.domain.com"
+                />
+              </div>
+              <InputField
+                label="포트"
+                value={imapPort}
+                onChange={setImapPort}
+                placeholder="993"
+              />
+            </div>
+            <InputField
+              label="이메일"
+              value={imapEmail}
+              onChange={setImapEmail}
+              placeholder="user@company.com"
+              type="email"
+            />
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-[var(--text-secondary)]">비밀번호</label>
+              <div className="flex gap-2">
+                <input
+                  type="password"
+                  value={imapPassword}
+                  onChange={(e) => setImapPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="flex-1 h-9 px-3 bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-md text-sm text-[var(--text-primary)] placeholder:text-[var(--text-placeholder)] focus:outline-none"
+                />
+                <button
+                  onClick={handleTestConnection}
+                  disabled={isTesting}
+                  className="h-9 px-3 flex items-center gap-1.5 bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[var(--text-secondary)] text-xs font-medium rounded-md hover:bg-[var(--bg-tertiary)] disabled:opacity-50 transition-colors"
+                >
+                  {isTesting ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-[var(--text-muted)] border-t-transparent rounded-full animate-spin" />
+                      테스트 중...
+                    </>
+                  ) : (
+                    '연결 테스트'
+                  )}
+                </button>
+              </div>
+              {testResult === 'success' && (
+                <p className="text-xs text-[var(--success)]">연결 성공! 비밀번호가 안전하게 저장되었습니다.</p>
+              )}
+              {testResult === 'error' && (
+                <p className="text-xs text-[var(--error)]">연결 실패. 서버 주소와 인증 정보를 확인해주세요.</p>
+              )}
+              <p className="text-xs text-[var(--text-muted)]">
+                비밀번호는 로컬 암호화 저장소(safeStorage)에만 보관됩니다. 외부 전송 없음.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* LLM Settings */}
+        <div className="border-t border-[var(--border-light)] pt-4">
+          <div className="flex items-center gap-2 mb-4">
+            <FiCpu size={14} className="text-[var(--text-muted)]" />
+            <span className="text-sm font-medium text-[var(--text-primary)]">LLM 모델 설정</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Select
+              label="분석 모델"
+              value={selectedModel}
+              onChange={setSelectedModel}
+              options={LLM_MODELS}
+            />
+            <Select
+              label="폴링 주기"
+              value={pollingInterval}
+              onChange={(v) => setPollingInterval(parseInt(v))}
+              options={POLLING_INTERVALS}
+            />
+          </div>
+          <p className="text-xs text-[var(--text-muted)] mt-2">
+            Ollama가 로컬에 설치되어 있어야 합니다. 모든 분석은 PC 내에서 처리됩니다.
+          </p>
+        </div>
+      </div>
+    </SettingsSection>
   )
 }
 
@@ -840,6 +1020,9 @@ export function Settings({ sidebarMenus, onMenuToggle, onShowToast }: SettingsPr
             </div>
           </div>
         </SettingsSection>
+
+        {/* Mail Analysis Settings */}
+        <MailSettingsSection onShowToast={onShowToast} />
 
         {/* Save Button */}
         <div className="flex justify-end gap-3 pt-2 pb-6">

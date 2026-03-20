@@ -5,7 +5,16 @@
       "Bash(yarn dev)",
       "Bash(npm install:*)",
       "WebFetch(domain:github.com)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(tree:*)",
+      "Bash(npm update:*)",
+      "Bash(claude:*)",
+      "Bash(npx electron-vite:*)",
+      "WebSearch",
+      "Bash(git -C /c/Project/dot config user.email)",
+      "Bash(git -C /c/Project/dot config user.name)",
+      "Bash(git config:*)",
+      "Bash(git:*)"
     ]
   }
 }

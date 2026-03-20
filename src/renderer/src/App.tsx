@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { Sidebar } from './components/layout/Sidebar'
 import { Header } from './components/layout/Header'
 import { Dashboard } from './pages/Dashboard'
@@ -9,210 +9,122 @@ import { MyTeam } from './pages/MyTeam'
 import { Settings } from './pages/Settings'
 import { Templates } from './pages/Templates'
 import { TemplateDetail } from './pages/TemplateDetail'
+import { MailAnalysis } from './pages/MailAnalysis'
 import { ToastContainer } from './shared/components'
-import { useToast } from './hooks/useToast'
-
-const pageTitles: Record<string, string> = {
-  dashboard: 'Dashboard',
-  tasks: 'My Tasks',
-  calendar: 'Calendar',
-  projects: 'Projects',
-  team: 'Team',
-  templates: 'Templates',
-  settings: 'Settings'
-}
-
-export interface SidebarMenuItem {
-  id: string
-  label: string
-  enabled: boolean
-}
-
-const defaultSidebarMenus: SidebarMenuItem[] = [
-  { id: 'dashboard', label: 'Home', enabled: true },
-  { id: 'tasks', label: 'My Tasks', enabled: true },
-  { id: 'calendar', label: 'Calendar', enabled: true },
-  { id: 'templates', label: 'Templates', enabled: true },
-  { id: 'team', label: 'Team', enabled: true },
-  { id: 'settings', label: 'Settings', enabled: true }
-]
+import { useNavigation, useSidebar, useToasts } from './store'
+import { PAGE_TITLES } from './constants'
 
 function App(): React.JSX.Element {
-  const [currentPage, setCurrentPage] = useState('dashboard')
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
-  const [isNewTask, setIsNewTask] = useState(false)
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null)
-  const [isNewTemplate, setIsNewTemplate] = useState(false)
-  const [sidebarMenus, setSidebarMenus] = useState<SidebarMenuItem[]>(defaultSidebarMenus)
-  const toast = useToast()
+  // zustand store에서 상태와 액션 가져오기
+  const {
+    currentPage,
+    viewMode,
+    selectedTaskId,
+    selectedTemplateId,
+    navigate,
+    goBack,
+    selectTask,
+    createTask,
+    selectTemplate,
+    createTemplate
+  } = useNavigation()
 
-  interface AppState {
-    page: string
-    taskId: string | null
-    isNewTask: boolean
-    templateId: string | null
-    isNewTemplate: boolean
-  }
+  const { collapsed, menuItems, toggle, toggleMenuItem } = useSidebar()
+  const { toasts, removeToast, success } = useToasts()
 
-  const historyRef = useRef<AppState[]>([])
-  const forwardHistoryRef = useRef<AppState[]>([])
-  const currentStateRef = useRef<AppState>({ 
-    page: currentPage, 
-    taskId: selectedTaskId, 
-    isNewTask: isNewTask, 
-    templateId: selectedTemplateId, 
-    isNewTemplate: isNewTemplate 
-  })
-
+  // 글로벌 키보드/마우스 네비게이션
   useEffect(() => {
-    currentStateRef.current = {
-      page: currentPage,
-      taskId: selectedTaskId,
-      isNewTask: isNewTask,
-      templateId: selectedTemplateId,
-      isNewTemplate: isNewTemplate
-    }
-  }, [currentPage, selectedTaskId, isNewTask, selectedTemplateId, isNewTemplate])
-
-  const pushHistory = () => {
-    historyRef.current.push({ ...currentStateRef.current })
-    if (historyRef.current.length > 50) historyRef.current.shift()
-    // Clear forward history upon new action
-    forwardHistoryRef.current = []
-  }
-
-  const goBack = () => {
-    if (historyRef.current.length > 0) {
-      forwardHistoryRef.current.push({ ...currentStateRef.current })
-      if (forwardHistoryRef.current.length > 50) forwardHistoryRef.current.shift()
-
-      const lastState = historyRef.current.pop()!
-      setCurrentPage(lastState.page)
-      setSelectedTaskId(lastState.taskId)
-      setIsNewTask(lastState.isNewTask)
-      setSelectedTemplateId(lastState.templateId)
-      setIsNewTemplate(lastState.isNewTemplate)
-    } else {
-      if (selectedTaskId || isNewTask || selectedTemplateId || isNewTemplate) {
-        forwardHistoryRef.current.push({ ...currentStateRef.current })
-        setSelectedTaskId(null)
-        setIsNewTask(false)
-        setSelectedTemplateId(null)
-        setIsNewTemplate(false)
-      }
-    }
-  }
-
-  const goForward = () => {
-    if (forwardHistoryRef.current.length > 0) {
-      historyRef.current.push({ ...currentStateRef.current })
-      if (historyRef.current.length > 50) historyRef.current.shift()
-
-      const nextState = forwardHistoryRef.current.pop()!
-      setCurrentPage(nextState.page)
-      setSelectedTaskId(nextState.taskId)
-      setIsNewTask(nextState.isNewTask)
-      setSelectedTemplateId(nextState.templateId)
-      setIsNewTemplate(nextState.isNewTemplate)
-    }
-  }
-
-  useEffect(() => {
-    const handleGlobalBack = (e: MouseEvent | KeyboardEvent) => {
+    const handleGlobalNavigation = (e: MouseEvent | KeyboardEvent): void => {
       let isBack = false
-      let isForward = false
 
       if (e.type === 'keydown') {
         const kbEvent = e as KeyboardEvent
         const target = kbEvent.target as HTMLElement
-        const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable
-        
+        const isInput =
+          target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable
+
         if (!isInput) {
           if (kbEvent.key === 'Backspace' || kbEvent.key === 'Escape') isBack = true
-          if (kbEvent.metaKey && kbEvent.key === 'ArrowLeft') isBack = true // Cmd + Left
-          if (kbEvent.metaKey && kbEvent.key === 'ArrowRight') isForward = true // Cmd + Right
-          if (kbEvent.altKey && kbEvent.key === 'ArrowLeft') isBack = true // Alt + Left
-          if (kbEvent.altKey && kbEvent.key === 'ArrowRight') isForward = true // Alt + Right
+          if (kbEvent.metaKey && kbEvent.key === 'ArrowLeft') isBack = true
+          if (kbEvent.altKey && kbEvent.key === 'ArrowLeft') isBack = true
         }
       }
-      
+
       if (e.type === 'mousedown') {
         const mouseEvent = e as MouseEvent
-        if (mouseEvent.button === 3) { // Mouse 4 (Thumb back)
+        if (mouseEvent.button === 3) {
           mouseEvent.preventDefault()
           isBack = true
-        } else if (mouseEvent.button === 4) { // Mouse 5 (Thumb forward)
-          mouseEvent.preventDefault()
-          isForward = true
         }
       }
 
       if (isBack) goBack()
-      if (isForward) goForward()
     }
 
-    document.addEventListener('keydown', handleGlobalBack)
-    document.addEventListener('mousedown', handleGlobalBack)
+    document.addEventListener('keydown', handleGlobalNavigation)
+    document.addEventListener('mousedown', handleGlobalNavigation)
     return () => {
-      document.removeEventListener('keydown', handleGlobalBack)
-      document.removeEventListener('mousedown', handleGlobalBack)
+      document.removeEventListener('keydown', handleGlobalNavigation)
+      document.removeEventListener('mousedown', handleGlobalNavigation)
     }
-  }, [])
+  }, [goBack])
 
+  // 페이지 렌더링
+  const renderContent = (): React.JSX.Element => {
+    // Detail/Create 모드
+    if (viewMode === 'detail' || viewMode === 'create') {
+      if (selectedTaskId || (viewMode === 'create' && currentPage === 'tasks')) {
+        return (
+          <TaskDetail
+            taskId={selectedTaskId}
+            isNew={viewMode === 'create'}
+            onBack={goBack}
+          />
+        )
+      }
+      if (selectedTemplateId || (viewMode === 'create' && currentPage === 'templates')) {
+        return (
+          <TemplateDetail
+            templateId={selectedTemplateId}
+            isNew={viewMode === 'create'}
+            onBack={goBack}
+          />
+        )
+      }
+    }
 
-  const handleNavigate = (page: string): void => {
-    if (currentPage === page && !selectedTaskId && !isNewTask && !selectedTemplateId && !isNewTemplate) return
-    pushHistory()
-    setCurrentPage(page)
-    setSelectedTaskId(null)
-    setIsNewTask(false)
-    setSelectedTemplateId(null)
-    setIsNewTemplate(false)
-  }
-
-  const handleTaskClick = (taskId: string): void => {
-    if (selectedTaskId === taskId && !isNewTask) return
-    pushHistory()
-    setSelectedTaskId(taskId)
-    setIsNewTask(false)
-  }
-
-  const handleCreateTask = (): void => {
-    pushHistory()
-    setIsNewTask(true)
-    setSelectedTaskId(null)
-  }
-
-  const handleBackFromDetail = (): void => {
-    goBack()
-  }
-
-  const handleCreateTemplate = (): void => {
-    pushHistory()
-    setIsNewTemplate(true)
-    setSelectedTemplateId(null)
-  }
-
-  const handleEditTemplate = (templateId: string): void => {
-    if (selectedTemplateId === templateId && !isNewTemplate) return
-    pushHistory()
-    setSelectedTemplateId(templateId)
-    setIsNewTemplate(false)
-  }
-
-  const handleBackFromTemplateDetail = (): void => {
-    goBack()
-  }
-
-  const toggleSidebar = (): void => {
-    setSidebarCollapsed((prev) => !prev)
-  }
-
-  const handleMenuToggle = (id: string): void => {
-    setSidebarMenus((prev) =>
-      prev.map((menu) => (menu.id === id ? { ...menu, enabled: !menu.enabled } : menu))
-    )
+    // List 모드
+    switch (currentPage) {
+      case 'dashboard':
+        return <Dashboard />
+      case 'tasks':
+        return <MyTasks onTaskClick={selectTask} onCreateTask={createTask} />
+      case 'calendar':
+        return <Calendar onEventClick={selectTask} onCreateTask={createTask} />
+      case 'templates':
+        return <Templates onCreateTemplate={createTemplate} onEditTemplate={selectTemplate} />
+      case 'mail':
+        return <MailAnalysis />
+      case 'team':
+        return <MyTeam />
+      case 'settings':
+        return (
+          <Settings
+            sidebarMenus={menuItems}
+            onMenuToggle={toggleMenuItem}
+            onShowToast={success}
+          />
+        )
+      default:
+        return (
+          <div className="flex items-center justify-center h-full text-placeholder">
+            {PAGE_TITLES[currentPage] || currentPage} page coming soon...
+          </div>
+        )
+    }
   }
 
   return (
@@ -220,56 +132,21 @@ function App(): React.JSX.Element {
       <div className="flex h-screen overflow-hidden bg-white">
         <Sidebar
           currentPage={currentPage}
-          onNavigate={handleNavigate}
-          collapsed={sidebarCollapsed}
-          onToggle={toggleSidebar}
-          menuItems={sidebarMenus}
+          onNavigate={navigate}
+          collapsed={collapsed}
+          onToggle={toggle}
+          menuItems={menuItems}
         />
         <div className="flex-1 flex flex-col overflow-hidden">
           <Header
-            title={pageTitles[currentPage] || 'Dashboard'}
-            onToggleSidebar={toggleSidebar}
-            onNavigateToSettings={() => handleNavigate('settings')}
+            title={PAGE_TITLES[currentPage] || 'Dashboard'}
+            onToggleSidebar={toggle}
+            onNavigateToSettings={() => navigate('settings')}
           />
-          <main className="flex-1 overflow-hidden">
-            {selectedTaskId || isNewTask ? (
-              <TaskDetail taskId={selectedTaskId} isNew={isNewTask} onBack={handleBackFromDetail} />
-            ) : selectedTemplateId || isNewTemplate ? (
-              <TemplateDetail
-                templateId={selectedTemplateId}
-                isNew={isNewTemplate}
-                onBack={handleBackFromTemplateDetail}
-              />
-            ) : (
-              <>
-                {currentPage === 'dashboard' && <Dashboard />}
-                {currentPage === 'tasks' && <MyTasks onTaskClick={handleTaskClick} onCreateTask={handleCreateTask} />}
-                {currentPage === 'calendar' && <Calendar onEventClick={handleTaskClick} onCreateTask={handleCreateTask} />}
-                {currentPage === 'templates' && (
-                  <Templates
-                    onCreateTemplate={handleCreateTemplate}
-                    onEditTemplate={handleEditTemplate}
-                  />
-                )}
-                {currentPage === 'team' && <MyTeam />}
-                {currentPage === 'settings' && (
-                  <Settings
-                    sidebarMenus={sidebarMenus}
-                    onMenuToggle={handleMenuToggle}
-                    onShowToast={toast.success}
-                  />
-                )}
-                {!['dashboard', 'tasks', 'calendar', 'templates', 'team', 'settings'].includes(currentPage) && (
-                  <div className="flex items-center justify-center h-full text-placeholder">
-                    {pageTitles[currentPage]} page coming soon...
-                  </div>
-                )}
-              </>
-            )}
-          </main>
+          <main className="flex-1 overflow-hidden">{renderContent()}</main>
         </div>
       </div>
-      <ToastContainer toasts={toast.toasts} onClose={toast.removeToast} />
+      <ToastContainer toasts={toasts} onClose={removeToast} />
     </>
   )
 }

@@ -1,50 +1,176 @@
 import { useState } from 'react'
-import { FiCheckSquare, FiSquare, FiCheck, FiEdit2, FiTrash2 } from 'react-icons/fi'
-import { Badge, Avatar, Dot, ContextMenu } from '@renderer/shared/components'
+import {
+  FiChevronDown,
+  FiChevronRight,
+  FiCheck,
+  FiSquare,
+  FiCheckSquare,
+  FiEdit2,
+  FiTrash2
+} from 'react-icons/fi'
+import { Badge, Avatar, ProgressBar, ContextMenu } from '@renderer/shared/components'
+import type { Task, SubTask } from '@renderer/types'
+import { isTaskCompleted, getTaskProgress, getSubTaskProgress } from '@renderer/types'
 
-interface TaskItemProps {
-  id: string
-  title: string
-  completed: boolean
-  tag?: string
-  dueDate?: string
-  dueStatus?: 'urgent' | 'warning' | 'safe'
-  assignedBy?: string
-  onToggle: (id: string) => void
-  onClick?: (id: string) => void
-  onEdit?: (id: string) => void
-  onDelete?: (id: string) => void
+// ── Types ──────────────────────────────────────────────────────
+
+export interface TaskRowProps {
+  task: Task
+  onToggleSubTask: (taskId: string, subTaskId: string) => void
+  onToggleChecklist: (taskId: string, subTaskId: string, checklistId: string) => void
+  onClick?: (taskId: string) => void
+  onEdit?: (taskId: string) => void
+  onDelete?: (taskId: string) => void
+  onToggleMyDay?: (taskId: string) => void
 }
 
-const statusColors = {
-  urgent: 'error',
-  warning: 'warning',
-  safe: 'success'
-} as const
+// ── SubTask Row ────────────────────────────────────────────────
 
-export function TaskItem({
-  id,
-  title,
-  completed,
-  tag,
-  dueDate,
-  dueStatus = 'safe',
-  assignedBy,
-  onToggle,
+function SubTaskRow({
+  subTask,
+  taskId,
+  onToggleSubTask,
+  onToggleChecklist
+}: {
+  subTask: SubTask
+  taskId: string
+  onToggleSubTask: (taskId: string, subTaskId: string) => void
+  onToggleChecklist: (taskId: string, subTaskId: string, checklistId: string) => void
+}): React.JSX.Element {
+  const [expanded, setExpanded] = useState(false)
+  const progress = getSubTaskProgress(subTask)
+  const hasChecklist = subTask.checklist.length > 0
+
+  return (
+    <div className="pl-6">
+      {/* SubTask header row */}
+      <div
+        className={`flex items-center gap-2 py-1.5 group/sub ${
+          subTask.completed ? 'opacity-50' : ''
+        }`}
+      >
+        {/* Expand toggle or spacer */}
+        {hasChecklist ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setExpanded(!expanded)
+            }}
+            className="w-4 h-4 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors shrink-0"
+          >
+            {expanded ? <FiChevronDown size={12} /> : <FiChevronRight size={12} />}
+          </button>
+        ) : (
+          <span className="w-4 shrink-0" />
+        )}
+
+        {/* Toggle checkbox */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onToggleSubTask(taskId, subTask.id)
+          }}
+          className="shrink-0 text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors"
+        >
+          {subTask.completed ? (
+            <FiCheckSquare size={14} className="text-[var(--primary)]" />
+          ) : (
+            <FiSquare size={14} />
+          )}
+        </button>
+
+        {/* Title */}
+        <span
+          className={`text-xs flex-1 ${
+            subTask.completed
+              ? 'text-[var(--text-placeholder)] line-through'
+              : 'text-[var(--text-secondary)]'
+          }`}
+        >
+          {subTask.title}
+        </span>
+
+        {/* Checklist progress */}
+        {hasChecklist && (
+          <span className="text-[10px] text-[var(--text-muted)] tabular-nums shrink-0">
+            {progress.completed}/{progress.total}
+          </span>
+        )}
+
+        {/* Due date */}
+        {subTask.dueDate && !subTask.completed && (
+          <span
+            className="text-[10px] font-semibold tabular-nums shrink-0"
+            style={{ color: subTask.dueStatus === 'urgent' ? 'var(--error)' : subTask.dueStatus === 'warning' ? 'var(--warning)' : 'var(--success)' }}
+          >
+            {subTask.dueDate}
+          </span>
+        )}
+      </div>
+
+      {/* Checklist items (expanded) */}
+      {expanded && hasChecklist && (
+        <div className="pl-6 pb-1">
+          {subTask.checklist.map((item, index) => {
+            const isLast = index === subTask.checklist.length - 1
+            return (
+              <div key={item.id} className="flex items-center gap-2 py-0.5">
+                {/* Tree connector */}
+                <span className="w-4 text-[var(--border-default)] text-xs leading-none flex items-center justify-center shrink-0">
+                  {isLast ? '\u2514' : '\u251C'}
+                </span>
+
+                {/* Checkbox */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onToggleChecklist(taskId, subTask.id, item.id)
+                  }}
+                  className="shrink-0 text-[var(--text-muted)] hover:text-[var(--primary)] transition-colors"
+                >
+                  {item.completed ? (
+                    <FiCheckSquare size={12} className="text-[var(--primary)]" />
+                  ) : (
+                    <FiSquare size={12} />
+                  )}
+                </button>
+
+                {/* Text */}
+                <span
+                  className={`text-[11px] ${
+                    item.completed
+                      ? 'text-[var(--text-placeholder)] line-through'
+                      : 'text-[var(--text-muted)]'
+                  }`}
+                >
+                  {item.text}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── TaskRow (Main Export) ──────────────────────────────────────
+
+export function TaskRow({
+  task,
+  onToggleSubTask,
+  onToggleChecklist,
   onClick,
   onEdit,
-  onDelete
-}: TaskItemProps): React.JSX.Element {
+  onDelete,
+  onToggleMyDay
+}: TaskRowProps): React.JSX.Element {
+  const [expanded, setExpanded] = useState(false)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
 
-  const handleToggle = (e: React.MouseEvent): void => {
-    e.stopPropagation()
-    onToggle(id)
-  }
-
-  const handleClick = (): void => {
-    onClick?.(id)
-  }
+  const completed = isTaskCompleted(task)
+  const progress = getTaskProgress(task)
+  const hasSubTasks = task.subTasks.length > 0
 
   const handleContextMenu = (e: React.MouseEvent): void => {
     e.preventDefault()
@@ -52,25 +178,20 @@ export function TaskItem({
     setContextMenu({ x: e.clientX, y: e.clientY })
   }
 
-  const closeContextMenu = (): void => {
-    setContextMenu(null)
-  }
-
   const contextMenuItems = [
     {
-      label: completed ? '미완료로 변경' : '완료로 변경',
-      icon: <FiCheck size={14} />,
-      onClick: () => onToggle(id)
+      label: task.isMyDay ? '오늘 할 일에서 제거' : '오늘 할 일에 추가',
+      onClick: () => onToggleMyDay?.(task.id)
     },
     {
       label: '수정',
       icon: <FiEdit2 size={14} />,
-      onClick: () => onEdit?.(id)
+      onClick: () => onEdit?.(task.id)
     },
     {
       label: '삭제',
       icon: <FiTrash2 size={14} />,
-      onClick: () => onDelete?.(id),
+      onClick: () => onDelete?.(task.id),
       danger: true
     }
   ]
@@ -78,81 +199,123 @@ export function TaskItem({
   return (
     <>
       <div
-        onClick={handleClick}
         onContextMenu={handleContextMenu}
-        className={`group relative flex flex-col gap-2.5 px-3.5 py-3 rounded-[var(--radius-lg)] border transition-all duration-200 ease-out w-full cursor-pointer ${
+        className={`rounded-[var(--radius-lg)] border transition-all duration-200 ${
           completed
-            ? 'opacity-60 border-[var(--border-light)] bg-[var(--bg-default)]'
-            : 'border-[var(--border-default)] bg-[var(--bg-default)] hover:bg-[var(--bg-secondary)] hover:border-[var(--border-default)]'
+            ? 'opacity-50 border-[var(--border-light)] bg-[var(--bg-default)]'
+            : 'border-[var(--border-default)] bg-[var(--bg-default)] hover:border-[var(--border-default)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]'
         }`}
-        style={{ boxShadow: 'none' }}
-        onMouseEnter={(e) => {
-          if (!completed) {
-            e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.04)'
-          }
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.boxShadow = 'none'
-        }}
       >
-        {/* Status Indicator */}
-        <div className="absolute top-3 right-3 transition-transform duration-200 group-hover:scale-125">
-          <Dot
-            color={completed ? 'muted' : statusColors[dueStatus]}
-            size="sm"
-          />
-        </div>
-
-        {/* Title */}
-        <h4
-          className={`text-sm font-medium leading-snug pr-4 transition-colors ${
-            completed ? 'text-[var(--text-placeholder)] line-through' : 'text-[var(--text-primary)]'
-          }`}
+        {/* ── Task Header Row ── */}
+        <div
+          className="flex items-center gap-3 px-4 py-3 cursor-pointer"
+          onClick={() => onClick?.(task.id)}
         >
-          {title}
-        </h4>
-
-        {/* Tag */}
-        {tag && <Badge label={tag} />}
-
-        {/* Bottom: Checkbox + DueDate + Assignee */}
-        <div className="flex items-center justify-between pt-2 mt-0.5 border-t border-[var(--border-light)]">
-          {/* Checkbox & ID */}
-          <button
-            onClick={(e) => handleToggle(e)}
-            className={`flex items-center gap-1.5 text-[var(--font-size-sm)] font-medium transition-all duration-150 ${
-              completed
-                ? 'text-[var(--primary)]'
-                : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-            }`}
-          >
+          {/* Completion indicator */}
+          <div className="shrink-0 w-4 flex justify-center">
             {completed ? (
-              <FiCheckSquare size={14} className="text-[var(--primary)]" strokeWidth={2} />
+              <FiCheck size={14} className="text-[var(--primary)]" />
             ) : (
-              <FiSquare size={14} strokeWidth={1.5} className="transition-colors" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-muted)]" />
             )}
-            <span className="text-[10px] tracking-tight opacity-70">DOT-{id.toUpperCase()}</span>
-          </button>
+          </div>
 
-          {/* Right side: DueDate + Assignee */}
-          <div className="flex items-center gap-2.5">
-            {dueDate && (
-              <span
-                className="text-[10px] font-semibold tracking-tight"
-                style={{
-                  color: completed
-                    ? 'var(--text-muted)'
-                    : `var(--${statusColors[dueStatus]})`
-                }}
-              >
-                {dueDate}
+          {/* Title + MyDay badge */}
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <h4
+              className={`text-sm font-medium truncate ${
+                completed
+                  ? 'text-[var(--text-placeholder)] line-through'
+                  : 'text-[var(--text-primary)]'
+              }`}
+            >
+              {task.title}
+            </h4>
+            {task.isMyDay && !completed && (
+              <span className="shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded-[var(--radius-sm)] text-[var(--primary)] bg-[var(--primary)]/10">
+                Today
               </span>
             )}
-            <div className="transition-transform duration-150 group-hover:scale-105">
-              <Avatar name={assignedBy} size="xs" gradient={!!assignedBy} />
+          </div>
+
+          {/* Right side meta — fixed widths for alignment */}
+          <div className="flex items-center shrink-0">
+            {/* Tag: fixed width */}
+            <div className="w-24 flex justify-end">
+              {task.tag && <Badge label={task.tag} size="sm" />}
+            </div>
+
+            {/* Progress: fixed width */}
+            <div className="w-20 flex items-center justify-end gap-1.5">
+              {hasSubTasks && (
+                <>
+                  <span className="text-[10px] font-medium text-[var(--text-muted)] tabular-nums">
+                    {progress.completed}/{progress.total}
+                  </span>
+                  <div className="w-10">
+                    <ProgressBar
+                      value={progress.completed}
+                      max={progress.total || 1}
+                      color={completed ? 'success' : 'primary'}
+                      size="xs"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Due date: fixed width, urgency color */}
+            <div className="w-14 flex justify-end">
+              {task.dueDate && (
+                <span
+                  className="text-[10px] font-semibold tabular-nums whitespace-nowrap"
+                  style={{
+                    color: completed
+                      ? 'var(--text-muted)'
+                      : statusColors[task.dueStatus || 'safe']
+                  }}
+                >
+                  {task.dueDate}
+                </span>
+              )}
+            </div>
+
+            {/* Assignee: fixed width */}
+            <div className="w-8 flex justify-center">
+              {task.assignedBy && <Avatar name={task.assignedBy} size="xs" gradient />}
+            </div>
+
+            {/* Expand chevron: fixed width */}
+            <div className="w-6 flex justify-center">
+              {hasSubTasks && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setExpanded(!expanded)
+                  }}
+                  className="w-5 h-5 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors rounded hover:bg-[var(--bg-secondary)]"
+                >
+                  {expanded ? <FiChevronDown size={14} /> : <FiChevronRight size={14} />}
+                </button>
+              )}
             </div>
           </div>
         </div>
+
+        {/* ── SubTask List (Accordion) ── */}
+        {expanded && hasSubTasks && (
+          <div className="border-t border-[var(--border-light)] px-4 py-2">
+            {task.subTasks.map((subTask) => (
+              <SubTaskRow
+                key={subTask.id}
+                subTask={subTask}
+                taskId={task.id}
+                onToggleSubTask={onToggleSubTask}
+                onToggleChecklist={onToggleChecklist}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Context Menu */}
@@ -160,11 +323,13 @@ export function TaskItem({
         <ContextMenu
           items={contextMenuItems}
           position={contextMenu}
-          onClose={closeContextMenu}
+          onClose={() => setContextMenu(null)}
         />
       )}
     </>
   )
 }
 
-export type { TaskItemProps }
+// Keep backward-compatible export name
+export { TaskRow as TaskItem }
+export type { TaskRowProps as TaskItemProps }

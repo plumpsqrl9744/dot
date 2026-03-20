@@ -1,12 +1,8 @@
-import { JSX, useState } from 'react'
+import { JSX, useState, useMemo } from 'react'
 import { FiArrowLeft, FiEdit2, FiTrash2, FiCheck, FiX, FiPlus } from 'react-icons/fi'
 import { Button, Badge, Breadcrumb, Card } from '@renderer/shared/components'
-
-interface TemplateTask {
-  id: string
-  title: string
-  tag?: string
-}
+import { MOCK_TEMPLATES } from '../constants'
+import type { TemplateTask } from '../types'
 
 interface TemplateDetailProps {
   templateId: string | null
@@ -14,59 +10,29 @@ interface TemplateDetailProps {
   onBack: () => void
 }
 
-const mockTemplates: Record<string, {
-  id: string
-  name: string
-  description?: string
-  tasks: TemplateTask[]
-  createdAt: string
-}> = {
-  't1': {
-    id: 't1',
-    name: '신규 프로젝트 온보딩',
-    description: '새 프로젝트 시작 시 필요한 기본 태스크 목록',
-    tasks: [
-      { id: '1', title: '프로젝트 요구사항 분석', tag: 'BIZ' },
-      { id: '2', title: '기술 스택 선정', tag: 'BACKEND' },
-      { id: '3', title: '개발 환경 설정', tag: 'DEVOPS' },
-      { id: '4', title: '초기 아키텍처 설계', tag: 'BACKEND' }
-    ],
-    createdAt: '2026-03-10'
-  },
-  't2': {
-    id: 't2',
-    name: '스프린트 회고',
-    description: '스프린트 종료 후 회고 프로세스',
-    tasks: [
-      { id: '1', title: '개인 회고 작성', tag: 'TEAM' },
-      { id: '2', title: '팀 회고 미팅', tag: 'TEAM' },
-      { id: '3', title: '액션 아이템 정리', tag: 'TEAM' }
-    ],
-    createdAt: '2026-03-12'
-  },
-  't3': {
-    id: 't3',
-    name: '릴리즈 체크리스트',
-    description: '배포 전 필수 확인 사항',
-    tasks: [
-      { id: '1', title: '코드 리뷰 완료', tag: 'FRONTEND' },
-      { id: '2', title: 'QA 테스트 완료', tag: 'QA' },
-      { id: '3', title: '문서 업데이트', tag: 'DOCS' },
-      { id: '4', title: '스테이징 배포', tag: 'DEVOPS' },
-      { id: '5', title: '프로덕션 배포', tag: 'DEVOPS' }
-    ],
-    createdAt: '2026-03-15'
-  }
-}
+export function TemplateDetail({
+  templateId,
+  isNew = false,
+  onBack
+}: TemplateDetailProps): JSX.Element {
+  const templatesRecord = useMemo(
+    () =>
+      MOCK_TEMPLATES.reduce<
+        Record<string, { id: string; name: string; description?: string; tasks: TemplateTask[]; createdAt: string }>
+      >((acc, t) => {
+        acc[t.id] = t
+        return acc
+      }, {}),
+    []
+  )
 
-export function TemplateDetail({ templateId, isNew = false, onBack }: TemplateDetailProps): JSX.Element {
-  const existingTemplate = templateId ? mockTemplates[templateId] : null
+  const existingTemplate = templateId ? templatesRecord[templateId] : null
 
   const [isEditing, setIsEditing] = useState(isNew || !existingTemplate)
   const [editForm, setEditForm] = useState({
     name: existingTemplate?.name || '',
     description: existingTemplate?.description || '',
-    tasks: existingTemplate?.tasks || [] as TemplateTask[]
+    tasks: existingTemplate?.tasks || ([] as TemplateTask[])
   })
 
   const [newTaskTitle, setNewTaskTitle] = useState('')
@@ -120,9 +86,7 @@ export function TemplateDetail({ templateId, isNew = false, onBack }: TemplateDe
   const handleTaskChange = (taskId: string, field: 'title' | 'tag', value: string): void => {
     setEditForm((prev) => ({
       ...prev,
-      tasks: prev.tasks.map((t) =>
-        t.id === taskId ? { ...t, [field]: value } : t
-      )
+      tasks: prev.tasks.map((t) => (t.id === taskId ? { ...t, [field]: value } : t))
     }))
   }
 
@@ -133,7 +97,7 @@ export function TemplateDetail({ templateId, isNew = false, onBack }: TemplateDe
         <Breadcrumb
           items={[
             { label: 'Templates', href: '#' },
-            { label: isNew ? 'New Template' : (editForm.name || 'Template') }
+            { label: isNew ? 'New Template' : editForm.name || 'Template' }
           ]}
         />
 
@@ -162,19 +126,39 @@ export function TemplateDetail({ templateId, isNew = false, onBack }: TemplateDe
               <div className="flex items-center gap-1">
                 {isEditing ? (
                   <>
-                    <Button variant="ghost" size="xs" icon={<FiCheck size={13} />} onClick={handleSave}>
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      icon={<FiCheck size={13} />}
+                      onClick={handleSave}
+                    >
                       Save
                     </Button>
-                    <Button variant="ghost" size="xs" icon={<FiX size={13} />} onClick={handleCancel}>
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      icon={<FiX size={13} />}
+                      onClick={handleCancel}
+                    >
                       Cancel
                     </Button>
                   </>
                 ) : (
                   <>
-                    <Button variant="ghost" size="xs" icon={<FiEdit2 size={13} />} onClick={handleEdit}>
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      icon={<FiEdit2 size={13} />}
+                      onClick={handleEdit}
+                    >
                       Edit
                     </Button>
-                    <Button variant="ghost" size="xs" icon={<FiTrash2 size={13} />} className="text-[var(--error)] hover:text-[var(--error)]">
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      icon={<FiTrash2 size={13} />}
+                      className="text-[var(--error)] hover:text-[var(--error)]"
+                    >
                       Delete
                     </Button>
                   </>
@@ -202,7 +186,9 @@ export function TemplateDetail({ templateId, isNew = false, onBack }: TemplateDe
               {isEditing ? (
                 <textarea
                   value={editForm.description}
-                  onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({ ...prev, description: e.target.value }))
+                  }
                   rows={2}
                   className="w-full text-sm text-[var(--text-secondary)] bg-[var(--bg-secondary)] border border-[var(--border-default)] rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
                   placeholder="템플릿 설명"

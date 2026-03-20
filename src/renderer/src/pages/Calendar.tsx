@@ -1,9 +1,12 @@
-import { JSX } from 'react'
+import { JSX, useMemo } from 'react'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import { EventClickArg } from '@fullcalendar/core'
 import { FiPlus } from 'react-icons/fi'
 import { Button, Dot, Breadcrumb } from '@renderer/shared/components'
+import { CALENDAR_EVENTS } from '../constants'
+import { useTasks } from '../store'
+import { isTaskCompleted } from '../types'
 import './Calendar.css'
 
 interface CalendarProps {
@@ -11,27 +14,40 @@ interface CalendarProps {
   onCreateTask?: () => void
 }
 
-const sampleEvents = [
-  { id: '1', title: 'AMS 정기 미팅', start: '2026-03-19', backgroundColor: 'rgb(99, 102, 241)' },
-  { id: '2', title: 'WAS 배포', start: '2026-03-20', backgroundColor: 'rgb(236, 72, 153)' },
-  {
-    id: '3',
-    title: 'Frontend 코드리뷰',
-    start: '2026-03-21',
-    backgroundColor: 'rgb(14, 165, 233)'
-  },
-  {
-    id: '4',
-    title: 'DB 마이그레이션',
-    start: '2026-03-24',
-    end: '2026-03-26',
-    backgroundColor: 'rgb(245, 158, 11)'
-  },
-  { id: '5', title: 'QA 테스트', start: '2026-03-25', backgroundColor: 'rgb(20, 184, 166)' },
-  { id: '6', title: '스프린트 회고', start: '2026-03-28', backgroundColor: 'rgb(168, 85, 247)' }
-]
+const TAG_COLORS: Record<string, string> = {
+  AMS: 'rgb(99, 102, 241)',
+  WAS: 'rgb(236, 72, 153)',
+  FRONTEND: 'rgb(14, 165, 233)',
+  BACKEND: 'rgb(14, 165, 233)',
+  BIZ: 'rgb(245, 158, 11)',
+  QA: 'rgb(20, 184, 166)',
+  MARKETING: 'rgb(168, 85, 247)',
+  DEVOPS: 'rgb(245, 158, 11)',
+  PERSONAL: 'rgb(156, 163, 175)'
+}
 
 export function Calendar({ onEventClick, onCreateTask }: CalendarProps): JSX.Element {
+  const { tasks } = useTasks()
+
+  const calendarEvents = useMemo(() => {
+    // 태스크 기반 이벤트: dueDate가 있는 태스크들을 캘린더 이벤트로 변환
+    const taskEvents = tasks
+      .filter((t) => t.createdAt && !isTaskCompleted(t))
+      .map((t) => ({
+        id: t.id,
+        title: t.title,
+        start: t.createdAt!,
+        backgroundColor: TAG_COLORS[t.tag || ''] || 'rgb(156, 163, 175)',
+        extendedProps: { taskId: t.id }
+      }))
+
+    // 캘린더 고유 이벤트 (태스크와 매핑되지 않는 것만 추가)
+    const taskIds = new Set(taskEvents.map((e) => e.id))
+    const additionalEvents = CALENDAR_EVENTS.filter((e) => !taskIds.has(e.id))
+
+    return [...taskEvents, ...additionalEvents]
+  }, [tasks])
+
   const today = new Date()
   const dateString = today.toLocaleDateString('ko-KR', {
     year: 'numeric',
@@ -39,9 +55,9 @@ export function Calendar({ onEventClick, onCreateTask }: CalendarProps): JSX.Ele
   })
 
   const handleEventClick = (info: EventClickArg): void => {
-    const eventId = info.event.id
-    if (eventId && onEventClick) {
-      onEventClick(eventId)
+    const taskId = info.event.extendedProps?.taskId || info.event.id
+    if (taskId && onEventClick) {
+      onEventClick(taskId)
     }
   }
 
@@ -101,7 +117,7 @@ export function Calendar({ onEventClick, onCreateTask }: CalendarProps): JSX.Ele
               month: '월',
               week: '주'
             }}
-            events={sampleEvents}
+            events={calendarEvents}
             eventClick={handleEventClick}
             eventDisplay="block"
             dayMaxEvents={3}

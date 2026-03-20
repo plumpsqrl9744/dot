@@ -1,81 +1,16 @@
 import { JSX, useState } from 'react'
 import { FiPlus, FiEdit2, FiTrash2, FiSend } from 'react-icons/fi'
 import { Button, Card, Breadcrumb, Badge, Avatar, ContextMenu } from '@renderer/shared/components'
-
-interface TemplateTask {
-  id: string
-  title: string
-  tag?: string
-}
-
-interface Template {
-  id: string
-  name: string
-  description?: string
-  tasks: TemplateTask[]
-  createdAt: string
-}
-
-interface Follower {
-  id: string
-  name: string
-  email: string
-}
+import { MOCK_TEMPLATES, MOCK_FOLLOWERS } from '../constants'
+import type { Template, Follower } from '../types'
 
 interface TemplatesProps {
   onCreateTemplate?: () => void
   onEditTemplate?: (templateId: string) => void
 }
 
-const mockFollowers: Follower[] = [
-  { id: 'f1', name: '김철수', email: 'kim@dot.com' },
-  { id: 'f2', name: '이영희', email: 'lee@dot.com' },
-  { id: 'f3', name: '박지민', email: 'park@dot.com' },
-  { id: 'f4', name: '정민수', email: 'jung@dot.com' },
-  { id: 'f5', name: '최수진', email: 'choi@dot.com' }
-]
-
-const mockTemplates: Template[] = [
-  {
-    id: 't1',
-    name: '신규 프로젝트 온보딩',
-    description: '새 프로젝트 시작 시 필요한 기본 태스크 목록',
-    tasks: [
-      { id: '1', title: '프로젝트 요구사항 분석', tag: 'BIZ' },
-      { id: '2', title: '기술 스택 선정', tag: 'BACKEND' },
-      { id: '3', title: '개발 환경 설정', tag: 'DEVOPS' },
-      { id: '4', title: '초기 아키텍처 설계', tag: 'BACKEND' }
-    ],
-    createdAt: '2026-03-10'
-  },
-  {
-    id: 't2',
-    name: '스프린트 회고',
-    description: '스프린트 종료 후 회고 프로세스',
-    tasks: [
-      { id: '1', title: '개인 회고 작성', tag: 'TEAM' },
-      { id: '2', title: '팀 회고 미팅', tag: 'TEAM' },
-      { id: '3', title: '액션 아이템 정리', tag: 'TEAM' }
-    ],
-    createdAt: '2026-03-12'
-  },
-  {
-    id: 't3',
-    name: '릴리즈 체크리스트',
-    description: '배포 전 필수 확인 사항',
-    tasks: [
-      { id: '1', title: '코드 리뷰 완료', tag: 'FRONTEND' },
-      { id: '2', title: 'QA 테스트 완료', tag: 'QA' },
-      { id: '3', title: '문서 업데이트', tag: 'DOCS' },
-      { id: '4', title: '스테이징 배포', tag: 'DEVOPS' },
-      { id: '5', title: '프로덕션 배포', tag: 'DEVOPS' }
-    ],
-    createdAt: '2026-03-15'
-  }
-]
-
 export function Templates({ onCreateTemplate, onEditTemplate }: TemplatesProps): JSX.Element {
-  const [templates] = useState<Template[]>(mockTemplates)
+  const [templates] = useState<Template[]>(MOCK_TEMPLATES)
   const [contextMenu, setContextMenu] = useState<{
     position: { x: number; y: number }
     templateId: string
@@ -120,7 +55,7 @@ export function Templates({ onCreateTemplate, onEditTemplate }: TemplatesProps):
     {
       label: '전송',
       icon: <FiSend size={14} />,
-      subItems: mockFollowers.map((follower) => ({
+      subItems: MOCK_FOLLOWERS.map((follower: Follower) => ({
         label: follower.name,
         icon: <Avatar name={follower.name} size="xs" gradient />,
         onClick: () => handleSendToFollower(templateId, follower.id)

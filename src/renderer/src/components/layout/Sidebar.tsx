@@ -1,8 +1,8 @@
-import { useOnlineStatus } from '../../hooks/useOnlineStatus'
-import { FiHome, FiCheckSquare, FiCalendar, FiUsers, FiSettings, FiChevronLeft, FiPlus, FiFileText } from 'react-icons/fi'
+import { useOnlineStatus } from '../../shared/hooks/useOnlineStatus'
+import { FiHome, FiCheckSquare, FiCalendar, FiUsers, FiSettings, FiChevronLeft, FiPlus, FiFileText, FiMail } from 'react-icons/fi'
 import { LuChevronsUpDown } from 'react-icons/lu'
 import { Avatar } from '@renderer/shared/components'
-import type { SidebarMenuItem } from '../../App'
+import type { SidebarMenuItem } from '../../types'
 import { IconType } from 'react-icons'
 
 interface SidebarProps {
@@ -27,6 +27,7 @@ const ALL_NAV_ITEMS: NavItemConfig[] = [
   { id: 'calendar', label: 'Calendar', icon: FiCalendar, section: 'main' },
   { id: 'templates', label: 'Templates', icon: FiFileText, section: 'main' },
   { id: 'team', label: 'Team', icon: FiUsers, section: 'workspace' },
+  { id: 'mail', label: 'Mail Analysis', icon: FiMail, section: 'workspace' },
   { id: 'settings', label: 'Settings', icon: FiSettings, section: 'workspace' }
 ]
 
